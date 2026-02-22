@@ -1,0 +1,39 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "cam-report-22f09",
+          "appId": "1:950172806830:android:244f1f7adefabdba1c873f",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "cam-report-22f09",
+          "appId": "1:950172806830:ios:373bbca4847041ea1c873f",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "cam-report-22f09",
+          "configurations": {
+            "android": "1:950172806830:android:244f1f7adefabdba1c873f",
+            "ios": "1:950172806830:ios:373bbca4847041ea1c873f",
+            "web": "1:950172806830:web:84bd65f12c8e41571c873f"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

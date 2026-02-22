@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "950172806830",
+    "project_id": "cam-report-22f09",
+    "storage_bucket": "cam-report-22f09.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:950172806830:android:244f1f7adefabdba1c873f",
+        "android_client_info": {
+          "package_name": "com.daff.camreport"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjWKHb5I9DJ3TlsHC6vSZYt6TesnkLblg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:950172806830:android:3c3b7228d83903fc1c873f",
+        "android_client_info": {
+          "package_name": "com.example.cam_report"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjWKHb5I9DJ3TlsHC6vSZYt6TesnkLblg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:950172806830:android:378465cf75a7454a1c873f",
+        "android_client_info": {
+          "package_name": "com.mycompany.crmapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjWKHb5I9DJ3TlsHC6vSZYt6TesnkLblg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
