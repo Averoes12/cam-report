@@ -2,6 +2,7 @@ import 'package:camreport/constant/route.dart';
 import 'package:camreport/firebase_options.dart';
 import 'package:camreport/pages/home.dart';
 import 'package:camreport/provider/employee.dart';
+import 'package:camreport/provider/invoice.dart';
 import 'package:camreport/provider/medicine.dart';
 import 'package:camreport/provider/therapy.dart';
 import 'package:camreport/provider/visit.dart';
@@ -24,6 +25,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => MedicineProvider()),
         ChangeNotifierProvider(create:  (_) => VisitProvider()),
         ChangeNotifierProvider(create:  (_) => TherapyProvider()),
+        ChangeNotifierProvider(create: (_) => InvoiceProvider()),
       ], 
     child: const MyApp())
   );

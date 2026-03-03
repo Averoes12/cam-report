@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:camreport/models/medicine.dart';
 import 'package:camreport/models/transaction_therapy.dart';
 import 'package:camreport/models/transaction_visit.dart';
@@ -16,7 +18,6 @@ import 'dart:io' show Directory, File; // hanya akan kepakai kalau bukan web
 
 class Utils {
   static String formatNumber(int number) {
-    print("Formatting number: $number");
     final formatter = NumberFormat.decimalPattern('id'); // locale Indonesia
     return formatter.format(number);
   }
@@ -248,7 +249,7 @@ class Utils {
         print("✅ File berhasil disimpan di: $filePath");
       }
     } catch (e) {
-      print("❌ ERROR $e");
+      log("❌ ERROR $e");
     }
   }
 
@@ -432,7 +433,235 @@ class Utils {
     }
   }
 
-   String getInitials(String? name) {
+  static Future<void> exportInvoice({
+    required List<TransactionVisit> allData,
+    required DateTime startPeriod,
+    required DateTime endPeriod,
+  }) async {
+    try {
+      final workbook = xlsio.Workbook();
+      final sheet = workbook.worksheets[0];
+
+      // =====================================================
+      // FILTER PERIODE
+      // =====================================================
+      final filtered = allData.where((visit) {
+        final date = DateFormat("dd-MMM-yy HH:mm").parse(visit.end);
+
+        return !date.isBefore(startPeriod) && !date.isAfter(endPeriod);
+      }).toList();
+
+      // =====================================================
+      // GROUPING SESUAI RULE
+      // =====================================================
+      final Map<String, List<TransactionVisit>> grouped = {};
+
+      for (final visit in filtered) {
+        final status = (visit.employee.status ?? "").toUpperCase();
+
+        if (status == "KONTRAK") {
+          String type = "AMBIL OBAT";
+
+          if ((visit.note).toLowerCase().contains("berobat")) {
+            type = "PENGOBATAN";
+          }
+
+          grouped.putIfAbsent("KONTRAK $type", () => []);
+          grouped["KONTRAK $type"]!.add(visit);
+        } else {
+          grouped.putIfAbsent(status, () => []);
+          grouped[status]!.add(visit);
+        }
+      }
+
+      // =====================================================
+      // JUDUL
+      // =====================================================
+      final title = sheet.getRangeByIndex(1, 1, 1, 10);
+      title.merge();
+      title.setText(
+        "Rekapitulasi Pelayanan Inhouse Clinic PT. Mitsubishi Electric Automotive Indonesia",
+      );
+      title.cellStyle.bold = true;
+      title.cellStyle.hAlign = xlsio.HAlignType.center;
+
+      final periode = sheet.getRangeByIndex(2, 1, 2, 10);
+      periode.merge();
+      periode.setText(
+        "Periode ${DateFormat('dd MMMM yyyy').format(startPeriod).toUpperCase()} - ${DateFormat('dd MMMM yyyy').format(endPeriod).toUpperCase()}",
+      );
+      periode.cellStyle.hAlign = xlsio.HAlignType.center;
+
+      int rowIndex = 4;
+
+      // =====================================================
+      // HEADER
+      // =====================================================
+      final headers = [
+        "No",
+        "Tanggal",
+        "NIK",
+        "Permanent/Contract",
+        "Code",
+        "Nama",
+        "Departement",
+        "Total",
+        "Keterangan",
+        "Diagnosa",
+      ];
+
+      for (int i = 0; i < headers.length; i++) {
+        final cell = sheet.getRangeByIndex(rowIndex, i + 1);
+        cell.setText(headers[i]);
+        cell.cellStyle.bold = true;
+        cell.cellStyle.backColor = "#C4D79B";
+        cell.cellStyle.hAlign = xlsio.HAlignType.center;
+        cell.cellStyle.vAlign = xlsio.VAlignType.center;
+        cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+      }
+
+      rowIndex++;
+
+      double grandTotal = 0;
+
+      // =====================================================
+      // DATA + SUBTOTAL
+      // =====================================================
+      for (final entry in grouped.entries) {
+        final sectionTitle = entry.key;
+        final data = entry.value;
+
+        final section = sheet.getRangeByIndex(rowIndex, 1, rowIndex, 10);
+        section.merge();
+        section.setText(sectionTitle);
+        section.cellStyle.bold = true;
+        section.cellStyle.backColor = "#B8CCE4";
+        section.cellStyle.hAlign = xlsio.HAlignType.center;
+
+        rowIndex++;
+
+        double sectionTotal = 0;
+
+        for (int i = 0; i < data.length; i++) {
+          final visit = data[i];
+          final parsedDate = DateFormat("dd-MMM-yy HH:mm").parse(visit.end);
+
+          final noCell = sheet.getRangeByIndex(rowIndex, 1);
+
+          if (i == 0) {
+            noCell.setNumber(1);
+          } else {
+            noCell.formula = "=A${rowIndex - 1}+1";
+          }
+
+          final dateCell = sheet.getRangeByIndex(rowIndex, 2);
+          dateCell.dateTime = parsedDate;
+          dateCell.numberFormat = 'dd-mmm-yy';
+
+          sheet.getRangeByIndex(rowIndex, 3).setText(visit.employee.nip ?? "");
+
+          sheet
+              .getRangeByIndex(rowIndex, 4)
+              .setText(visit.employee.status ?? "");
+
+          sheet
+              .getRangeByIndex(rowIndex, 5)
+              .setText(visit.employee.deptcode ?? "");
+
+          sheet.getRangeByIndex(rowIndex, 6).setText(visit.employee.name ?? "");
+
+          sheet
+              .getRangeByIndex(rowIndex, 7)
+              .setText(visit.employee.deptnm ?? "");
+
+          final totalCell = sheet.getRangeByIndex(rowIndex, 8);
+          totalCell.setNumber((visit.grandTotal).toDouble());
+          totalCell.numberFormat = '#,##0';
+
+          sheet.getRangeByIndex(rowIndex, 9).setText(visit.note);
+
+          sheet.getRangeByIndex(rowIndex, 10).setText(visit.diagnose);
+
+          sectionTotal += (visit.grandTotal).toDouble();
+          grandTotal += (visit.grandTotal).toDouble();
+
+          // CENTER + BORDER FULL
+          for (int col = 1; col <= 10; col++) {
+            final cell = sheet.getRangeByIndex(rowIndex, col);
+            cell.cellStyle.hAlign = xlsio.HAlignType.center;
+            cell.cellStyle.vAlign = xlsio.VAlignType.center;
+            cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+          }
+
+          rowIndex++;
+        }
+
+        // =============================
+        // SUBTOTAL
+        // =============================
+        final subtotalRange = sheet.getRangeByIndex(rowIndex, 1, rowIndex, 7);
+        subtotalRange.merge();
+        subtotalRange.setText("Total Tagihan $sectionTitle (Sub Total)");
+        subtotalRange.cellStyle.bold = true;
+        subtotalRange.cellStyle.backColor = "#E6B8AF";
+        subtotalRange.cellStyle.hAlign = xlsio.HAlignType.center;
+
+        final subtotalCell = sheet.getRangeByIndex(rowIndex, 8);
+        subtotalCell.setNumber(sectionTotal);
+        subtotalCell.numberFormat = '"Rp" #,##0';
+        subtotalCell.cellStyle.bold = true;
+        subtotalCell.cellStyle.backColor = "#E6B8AF";
+        subtotalCell.cellStyle.hAlign = xlsio.HAlignType.center;
+
+        for (int col = 1; col <= 10; col++) {
+          final cell = sheet.getRangeByIndex(rowIndex, col);
+          cell.cellStyle.hAlign = xlsio.HAlignType.center;
+          cell.cellStyle.vAlign = xlsio.VAlignType.center;
+          cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+        }
+
+        rowIndex += 2;
+      }
+
+      // =====================================================
+      // GRAND TOTAL
+      // =====================================================
+      final grandRange = sheet.getRangeByIndex(rowIndex, 1, rowIndex, 7);
+      grandRange.merge();
+      grandRange.setText("GRAND TOTAL");
+      grandRange.cellStyle.bold = true;
+      grandRange.cellStyle.backColor = "#FCD5B4";
+      grandRange.cellStyle.hAlign = xlsio.HAlignType.center;
+
+      final grandCell = sheet.getRangeByIndex(rowIndex, 8);
+      grandCell.setNumber(grandTotal);
+      grandCell.numberFormat = '"Rp" #,##0';
+      grandCell.cellStyle.bold = true;
+      grandCell.cellStyle.backColor = "#FCD5B4";
+      grandCell.cellStyle.hAlign = xlsio.HAlignType.center;
+
+      for (int col = 1; col <= 10; col++) {
+        final cell = sheet.getRangeByIndex(rowIndex, col);
+        cell.cellStyle.hAlign = xlsio.HAlignType.center;
+        cell.cellStyle.vAlign = xlsio.VAlignType.center;
+        cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+      }
+
+      final bytes = workbook.saveAsStream();
+      workbook.dispose();
+
+      await FileSaver.instance.saveFile(
+        name: "CAM_INVOICE",
+        bytes: Uint8List.fromList(bytes),
+        fileExtension: "xlsx",
+        mimeType: MimeType.microsoftExcel,
+      );
+    } catch (e) {
+      print("ERROR EXPORT INVOICE: $e");
+    }
+  }
+
+  String getInitials(String? name) {
     if (name == null || name.trim().isEmpty) return '';
 
     final words = name.trim().split(RegExp(r'\s+'));

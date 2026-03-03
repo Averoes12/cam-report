@@ -1,5 +1,5 @@
-import 'package:camreport/constant/route.dart';
 import 'package:camreport/pages/employee/index.dart';
+import 'package:camreport/pages/invoice/index.dart';
 import 'package:camreport/pages/medicine/index.dart';
 import 'package:camreport/pages/therapy/index.dart';
 import 'package:camreport/pages/visit/index.dart';
@@ -136,14 +136,19 @@ class _HomePageState extends State<HomePage> {
               label: Text('Berobat'),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
               label: Text('Karyawan'),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
+              icon: Icon(Icons.medical_information_rounded),
+              selectedIcon: Icon(Icons.medical_information),
               label: Text('Obat'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.receipt_outlined),
+              selectedIcon: Icon(Icons.receipt),
+              label: Text('Invoice'),
             ),
           ],
         ),
@@ -162,6 +167,8 @@ class _HomePageState extends State<HomePage> {
         return EmployeePage();
       case 3:
         return MedicinePage();
+      case 4:
+        return InvoicePage();
       default:
         return const SizedBox();
     }

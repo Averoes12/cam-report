@@ -28,6 +28,7 @@ class _AddVisitPageState extends State<AddVisitPage> {
   final TextEditingController _endDtController = TextEditingController();
   final TextEditingController _endTmController = TextEditingController();
   final TextEditingController _diagnosaController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
   final TextEditingController _remarkController = TextEditingController();
   final TextEditingController _waktuController = TextEditingController();
 
@@ -131,10 +132,7 @@ class _AddVisitPageState extends State<AddVisitPage> {
 
         if (_startDtController.text.isEmpty) {
           if (!mounted) return;
-          SnackBarUtil.showSnack(
-            context,
-            'Pilih tanggal mulai dulu',
-          );
+          SnackBarUtil.showSnack(context, 'Pilih tanggal mulai dulu');
           return;
         }
         if (!dt.isAfter(_startDt)) {
@@ -210,9 +208,9 @@ class _AddVisitPageState extends State<AddVisitPage> {
         grandTotal: grandTotal,
         spenTm: _waktuController.text,
         diagnose: _diagnosaController.text,
-        note: "Ambil Obat",
+        note: _noteController.text.isEmpty ? 'Ambil Obat' : _noteController.text,
         remark: _remarkController.text,
-      );      
+      );
 
       DatabaseService db = DatabaseService();
       showDialog(
@@ -277,6 +275,7 @@ class _AddVisitPageState extends State<AddVisitPage> {
                               _endTmController.text = '';
                               _waktuController.text = '';
                               _diagnosaController.text = '';
+                              _noteController.text = '';
                               _remarkController.text = '';
                             });
                             Navigator.pop(context);
@@ -486,6 +485,10 @@ class _AddVisitPageState extends State<AddVisitPage> {
                     },
                   ),
                 ),
+              ),
+              TextFormField(
+                controller: _noteController,
+                decoration: InputDecoration(labelText: "Keterangan(Ambil Obat/Cek)"),
               ),
               TextFormField(
                 controller: _diagnosaController,

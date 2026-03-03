@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:camreport/models/employee.dart';
 import 'package:camreport/models/medicine.dart';
 import 'package:camreport/models/transaction_therapy.dart';
@@ -185,6 +187,23 @@ class DatabaseService {
       for (final doc in querySnapshot.docs) {
         await doc.reference.delete();
       }
+    }
+  }
+
+  Stream<List<TransactionVisit>> getInvoices() {
+    try {      
+      return trxvisitCollection
+          .orderBy('endDt')
+          .snapshots()
+          .map((snapshot) {            
+            if (snapshot.docs.isEmpty) return [];
+            return snapshot.docs
+                .map((doc) => doc.data() as TransactionVisit)
+                .toList();
+          });
+    } catch (e) {
+      log("ERROR GET INVOICE: $e");
+      return const Stream.empty();
     }
   }
 }
