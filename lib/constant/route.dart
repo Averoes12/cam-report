@@ -1,10 +1,13 @@
 const String homeView = '/';
 const String employeeView = '/employee';
 const String addEmployeeView = '/employee/add';
+const String editEmployeeView = '/employee/edit';
 const String medicineView = '/medicine';
 const String addMedicineView = '/medicine/add';
 const String visitView = '/visit';
 const String addVisitView = '/visit/add';
+const String editVisitView = '/visit/edit';
 const String therapyView = '/therapy';
 const String addTherapyView = '/therapy/add';
+const String editTherapyView = '/therapy/edit';
 const String invoiceView = '/invoice';

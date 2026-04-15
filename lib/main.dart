@@ -7,6 +7,7 @@ import 'package:camreport/provider/medicine.dart';
 import 'package:camreport/provider/therapy.dart';
 import 'package:camreport/provider/visit.dart';
 import 'package:camreport/router/router.dart';
+import 'package:camreport/theme/global_theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -23,11 +24,12 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => EmployeeProvider()),
         ChangeNotifierProvider(create: (_) => MedicineProvider()),
-        ChangeNotifierProvider(create:  (_) => VisitProvider()),
-        ChangeNotifierProvider(create:  (_) => TherapyProvider()),
+        ChangeNotifierProvider(create: (_) => VisitProvider()),
+        ChangeNotifierProvider(create: (_) => TherapyProvider()),
         ChangeNotifierProvider(create: (_) => InvoiceProvider()),
-      ], 
-    child: const MyApp())
+      ],
+      child: const MyApp(),
+    ),
   );
 }
 
@@ -42,10 +44,7 @@ class MyApp extends StatelessWidget {
       onGenerateRoute: (RouteSettings settings) {
         return AppRouter.generateRoute(settings);
       },
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      theme: GlobalTheme.lightThemeData,
       home: HomePage(),
     );
   }

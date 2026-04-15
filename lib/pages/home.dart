@@ -3,6 +3,7 @@ import 'package:camreport/pages/invoice/index.dart';
 import 'package:camreport/pages/medicine/index.dart';
 import 'package:camreport/pages/therapy/index.dart';
 import 'package:camreport/pages/visit/index.dart';
+import 'package:camreport/theme/global_colors.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -15,196 +16,306 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      // body: LayoutBuilder(
-      //   builder: (context, constraints) {
-      //     final maxCrossAxisExtent = constraints.maxWidth / 2;
-      //     final childAspectRatio =
-      //         constraints.maxWidth / (constraints.maxHeight * 0.7);
-      //     return GridView(
-      //       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-      //         maxCrossAxisExtent: maxCrossAxisExtent,
-      //         childAspectRatio: childAspectRatio,
-      //       ),
-      //       children: [
-      //         InkWell(
-      //           onTap: () {
-      //             Navigator.pushNamed(context, employeeView);
-      //           },
-      //           child: Card(
-      //             child: Column(
-      //               mainAxisAlignment: MainAxisAlignment.center,
-      //               crossAxisAlignment: CrossAxisAlignment.center,
-      //               children: [
-      //                 Icon(Icons.person, size: 48.0),
-      //                 Text('Employee'),
-      //               ],
-      //             ),
-      //           ),
-      //         ),
-      //         InkWell(
-      //           onTap: () {
-      //             Navigator.pushNamed(context, medicineView);
-      //           },
-      //           child: Card(
-      //             child: Column(
-      //               mainAxisAlignment: MainAxisAlignment.center,
-      //               crossAxisAlignment: CrossAxisAlignment.center,
-      //               children: [
-      //                 Icon(Icons.medical_services, size: 48.0),
-      //                 Text('Medicine'),
-      //               ],
-      //             ),
-      //           ),
-      //         ),
-      //         InkWell(
-      //           onTap: () {
-      //             Navigator.pushNamed(context, visitView);
-      //           },
-      //           child: Card(
-      //             child: Column(
-      //               mainAxisAlignment: MainAxisAlignment.center,
-      //               crossAxisAlignment: CrossAxisAlignment.center,
-      //               children: [
-      //                 Icon(Icons.local_hospital, size: 48.0),
-      //                 Text('Visit'),
-      //               ],
-      //             ),
-      //           ),
-      //         ),
-      //         InkWell(
-      //           onTap: () {
-      //             Navigator.pushNamed(context, therapyView);
-      //           },
-      //           child: Card(
-      //             child: Column(
-      //               mainAxisAlignment: MainAxisAlignment.center,
-      //               crossAxisAlignment: CrossAxisAlignment.center,
-      //               children: [
-      //                 Icon(Icons.healing, size: 48.0),
-      //                 Text('Therapy'),
-      //               ],
-      //             ),
-      //           ),
-      //         ),
-      //         InkWell(
-      //           onTap: () {
-      //             Navigator.pushNamed(context, invoiceView);
-      //           },
-      //           child: Card(
-      //             child: Column(
-      //               mainAxisAlignment: MainAxisAlignment.center,
-      //               crossAxisAlignment: CrossAxisAlignment.center,
-      //               children: [
-      //                 Icon(Icons.receipt, size: 48.0),
-      //                 Text('Invoice'),
-      //               ],
-      //             ),
-      //           ),
-      //         ),
-      //       ],
-      //     );
-      //   },
-      // ),
-      body: appDrawer(context),
-    );
-  }
+  final List<_MenuEntry> _mainMenu = const [
+    _MenuEntry('Dashboard', Icons.grid_view_rounded, 0),
+    _MenuEntry('Kunjungan', Icons.local_hospital_rounded, 0, isChild: true),
+    _MenuEntry('Berobat', Icons.healing_rounded, 1, isChild: true),
+    _MenuEntry('Karyawan', Icons.group_add_rounded, 2),
+    _MenuEntry('Obat', Icons.medication_rounded, 3),
+  ];
 
-  Widget appDrawer(BuildContext context) {
-    return Row(
-      children: [
-        NavigationRail(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: (index) {
-            setState(() {
-              selectedIndex = index;
-            });
-          },
-          labelType: NavigationRailLabelType.all,
-          minWidth: 80,
-          destinations: const [
-            NavigationRailDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
-              label: Text('Kunjungan'),
-            ),
-            NavigationRailDestination(
-              icon: Icon(Icons.people_outline),
-              selectedIcon: Icon(Icons.people),
-              label: Text('Berobat'),
-            ),
-            NavigationRailDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: Text('Karyawan'),
-            ),
-            NavigationRailDestination(
-              icon: Icon(Icons.medical_information_rounded),
-              selectedIcon: Icon(Icons.medical_information),
-              label: Text('Obat'),
-            ),
-            NavigationRailDestination(
-              icon: Icon(Icons.receipt_outlined),
-              selectedIcon: Icon(Icons.receipt),
-              label: Text('Invoice'),
-            ),
-          ],
-        ),
-        Expanded(child: _buildContent()),
-      ],
-    );
-  }
+  final List<_MenuEntry> _otherMenu = const [
+    _MenuEntry('Invoice', Icons.receipt_long_rounded, 4),
+    _MenuEntry('Admin Panel', Icons.admin_panel_settings_rounded, 2),
+  ];
 
   Widget _buildContent() {
     switch (selectedIndex) {
       case 0:
-        return VisitPage();
+        return const VisitPage();
       case 1:
-        return TherapyPage();
+        return const TherapyPage();
       case 2:
-        return EmployeePage();
+        return const EmployeePage();
       case 3:
-        return MedicinePage();
+        return const MedicinePage();
       case 4:
-        return InvoicePage();
+        return const InvoicePage();
       default:
         return const SizedBox();
     }
   }
 
-  Widget _buildMenu({required bool isRail}) {
-    return ListView(
+  @override
+  Widget build(BuildContext context) {
+    final isCompact = MediaQuery.of(context).size.width < 980;
+
+    if (isCompact) {
+      return Scaffold(
+        body: _buildContent(),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: (index) =>
+              setState(() => selectedIndex = index),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.local_hospital_rounded),
+              label: 'Kunjungan',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.healing_rounded),
+              label: 'Berobat',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.group_rounded),
+              label: 'Karyawan',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.medication_rounded),
+              label: 'Obat',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.receipt_long_rounded),
+              label: 'Invoice',
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: Row(
+        children: [
+          Container(
+            width: 340,
+            color: GlobalColors.surface,
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Camreport',
+                              style: Theme.of(context).textTheme.headlineMedium,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Reporting obat dan kunjungan',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 28),
+                            _menuSection(
+                              context,
+                              'Menu',
+                              _mainMenu,
+                              expanded: true,
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Divider(height: 1),
+                            ),
+                            _menuSection(context, 'Other Menu', _otherMenu),
+                            const Spacer(),
+                            const SizedBox(height: 16),
+                            _footerAction(context),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          Container(width: 1, color: GlobalColors.border),
+          Expanded(
+            child: Container(
+              color: GlobalColors.neutral,
+              child: _buildContent(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _menuSection(
+    BuildContext context,
+    String title,
+    List<_MenuEntry> entries, {
+    bool expanded = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const DrawerHeader(
-          child: Text('ADMIN PANEL', style: TextStyle(fontSize: 20)),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 14),
+          child: Text(title, style: Theme.of(context).textTheme.bodySmall),
         ),
-        ListTile(
-          leading: const Icon(Icons.dashboard),
-          title: const Text('Dashboard'),
-          onTap: () {
-            setState(() => selectedIndex = 0);
-            Navigator.pop(context);
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.people),
-          title: const Text('Users'),
-          onTap: () {
-            setState(() => selectedIndex = 1);
-            Navigator.pop(context);
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.settings),
-          title: const Text('Settings'),
-          onTap: () {
-            setState(() => selectedIndex = 2);
-            Navigator.pop(context);
-          },
-        ),
+        ...entries.map((entry) {
+          final isActive = entry.index == selectedIndex;
+          final showChild = expanded && entry.isChild;
+          final parentActive =
+              expanded &&
+              entry.label == 'Dashboard' &&
+              (selectedIndex == 0 || selectedIndex == 1);
+
+          if (showChild) {
+            return Padding(
+              padding: const EdgeInsets.only(left: 26, bottom: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => setState(() => selectedIndex = entry.index),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isActive
+                              ? GlobalColors.primary
+                              : GlobalColors.border,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        entry.label,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: isActive
+                              ? GlobalColors.primary
+                              : GlobalColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final selectedParent = entry.label == 'Dashboard'
+              ? parentActive
+              : isActive;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Material(
+              color: selectedParent
+                  ? const Color(0xFFF2F7FF)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () => setState(() => selectedIndex = entry.index),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: selectedParent
+                          ? const Color(0xFFBED3FF)
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: selectedParent
+                              ? GlobalColors.primary.withValues(alpha: 0.12)
+                              : GlobalColors.neutral,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          entry.icon,
+                          color: selectedParent
+                              ? GlobalColors.primary
+                              : GlobalColors.textPrimary,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          entry.label,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: selectedParent
+                                    ? GlobalColors.primary
+                                    : GlobalColors.textPrimary,
+                              ),
+                        ),
+                      ),
+                      if (entry.label == 'Dashboard' ||
+                          entry.label == 'Invoice')
+                        Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: selectedParent
+                              ? GlobalColors.primary
+                              : GlobalColors.textSecondary,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
       ],
     );
   }
+
+  Widget _footerAction(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: GlobalColors.neutral,
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.login_rounded, color: GlobalColors.textPrimary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Log In',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: GlobalColors.textSecondary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuEntry {
+  final String label;
+  final IconData icon;
+  final int index;
+  final bool isChild;
+
+  const _MenuEntry(this.label, this.icon, this.index, {this.isChild = false});
 }

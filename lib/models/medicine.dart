@@ -18,6 +18,7 @@ class MedicineModel {
   int? subTotal;
 
   MedicineModel({
+    this.id,
     this.name,
     this.measure,
     this.firstStock,
@@ -31,8 +32,9 @@ class MedicineModel {
     this.subTotal,
   });
 
-  factory MedicineModel.fromJson(Map<String, dynamic> json) {
+  factory MedicineModel.fromJson(Map<String, dynamic> json, {String? id}) {
     return MedicineModel(
+      id: id ?? json['id'],
       name: json['name'],
       measure: json['measure'],
       firstStock: json['first_stock'],
@@ -60,6 +62,36 @@ class MedicineModel {
       'total': total,
       'sub_total': subTotal,
     };
+  }
+
+  MedicineModel copyWith({
+    String? id,
+    String? name,
+    dynamic measure,
+    int? firstStock,
+    int? lastStock,
+    int? arrivedStock,
+    int? returnedStock,
+    int? price,
+    String? expDt,
+    Color? color,
+    int? total,
+    int? subTotal,
+  }) {
+    return MedicineModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      measure: measure ?? this.measure,
+      firstStock: firstStock ?? this.firstStock,
+      lastStock: lastStock ?? this.lastStock,
+      arrivedStock: arrivedStock ?? this.arrivedStock,
+      returnedStock: returnedStock ?? this.returnedStock,
+      price: price ?? this.price,
+      expDt: expDt ?? this.expDt,
+      color: color ?? this.color,
+      total: total ?? this.total,
+      subTotal: subTotal ?? this.subTotal,
+    );
   }
 
   static Color _randomColor(String? key) {

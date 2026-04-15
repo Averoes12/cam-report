@@ -3,12 +3,11 @@ import 'package:camreport/constant/assets.dart';
 import 'package:camreport/constant/route.dart';
 import 'package:camreport/models/transaction_visit.dart';
 import 'package:camreport/services/database_service.dart';
+import 'package:camreport/theme/global_colors.dart';
 import 'package:camreport/utils/utils.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flareline_uikit/utils/snackbar_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 
 class VisitPage extends StatefulWidget {
@@ -19,282 +18,309 @@ class VisitPage extends StatefulWidget {
 }
 
 class _VisitPageState extends State<VisitPage> {
-  DatabaseService db = DatabaseService();
-  List<TransactionVisit> visits = [];
-  TextEditingController searchController = TextEditingController();
+  final DatabaseService db = DatabaseService();
+  final TextEditingController searchController = TextEditingController();
+  DateTimeRange? selectedRange;
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
+      initialDateRange: selectedRange,
+    );
+    if (picked != null) {
+      setState(() => selectedRange = picked);
+    }
+  }
+
+  List<TransactionVisit> _filterVisits(List<TransactionVisit> visits) {
+    final query = searchController.text.toLowerCase();
+    final formatter = DateFormat('dd-MMM-yy HH:mm');
+
+    final filtered = visits.where((visit) {
+      if (visit.category == 'therapy') return false;
+      if (selectedRange == null) return true;
+
+      final visitDate = formatter.parse(visit.end);
+      final start = DateTime(
+        selectedRange!.start.year,
+        selectedRange!.start.month,
+        selectedRange!.start.day,
+      );
+      final end = DateTime(
+        selectedRange!.end.year,
+        selectedRange!.end.month,
+        selectedRange!.end.day,
+        23,
+        59,
+        59,
+      );
+
+      return !visitDate.isBefore(start) && !visitDate.isAfter(end);
+    }).toList();
+
+    if (query.isEmpty) return filtered;
+
+    return filtered.where((visit) {
+      return (visit.employee.name ?? '').toLowerCase().contains(query) ||
+          (visit.employee.nip ?? '').toLowerCase().contains(query) ||
+          (visit.employee.deptnm ?? '').toLowerCase().contains(query);
+    }).toList();
+  }
+
+  Future<void> _deleteAllVisits() async {
+    try {
+      await db.deleteAllVisitData();
+      if (!mounted) return;
+      SnackBarUtil.showSuccess(
+        context,
+        'Semua data kunjungan berhasil dihapus',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      SnackBarUtil.showSnack(context, 'Gagal menghapus data kunjungan. $e');
+    }
+  }
+
+  Future<void> _showAddCategory() async {
+    await showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Pilih Kategori',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: const Icon(Icons.local_hospital_outlined),
+                  title: const Text('Kunjungan'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, addVisitView);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.healing_outlined),
+                  title: const Text('Berobat'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, addTherapyView);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String get _rangeLabel {
+    if (selectedRange == null) return 'Semua tanggal';
+    final formatter = DateFormat('dd MMM yyyy');
+    return '${formatter.format(selectedRange!.start)} - ${formatter.format(selectedRange!.end)}';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: const Text("Kunjungan"),
+        title: const Text('Kunjungan'),
         actions: [
-          GestureDetector(
-            onTap: () {
-              Utils.exportVisits(visits);
-            },
-            child: Image.asset(iconExport, width: 20, height: 20),
+          IconButton(
+            onPressed: _showAddCategory,
+            icon: const Icon(Icons.add_circle_outline),
           ),
           IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              showModalBottomSheet(
-                isScrollControlled: true,
-                isDismissible: false,
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.3,
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Hapus Semua Kunjungan'),
+                  content: const Text(
+                    'Semua data kunjungan akan dihapus dan stok obat dikembalikan.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Batal'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Hapus'),
+                    ),
+                  ],
                 ),
-                enableDrag: false,
-                context: context,
-                builder: (ctx) {
-                  return Column(
-                    children: [
-                      SizedBox(height: 24.0),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: [
-                            Text(
-                              "Pilih Kategori",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: Align(
-                                  alignment: Alignment.centerRight,
-                                  child: Icon(Icons.close),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 8.0),
-                      ListTile(
-                        title: Text('Kunjungan'),
-                        onTap: () {
-                          Navigator.pushNamed(context, addVisitView);
-                        },
-                      ),
-                      Divider(),
-                      ListTile(
-                        title: Text('Berobat'),
-                        onTap: () {
-                          Navigator.pushNamed(context, addTherapyView);
-                        },
-                      ),
-                      Divider(),
-                    ],
-                  );
-                },
               );
+              if (confirmed == true) {
+                await _deleteAllVisits();
+              }
             },
-          ),
-          IconButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                barrierDismissible: false, // biar nggak bisa ditutup klik luar
-                builder: (ctx) {
-                  return Dialog(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SizedBox(
-                      height: 250,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Image.asset(iconWarning, width: 150, height: 150),
-                          Text("Hapus semua data kunjungan?"),
-                          SizedBox(height: 24.0),
-                          Row(
-                            children: [
-                              SizedBox(width: 24.0),
-                              GestureDetector(
-                                child: Text(
-                                  "Tidak",
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                },
-                              ),
-                              Spacer(),
-                              GestureDetector(
-                                child: Container(
-                                  padding: const EdgeInsets.all(8.0),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue,
-                                    borderRadius: BorderRadius.circular(4.0),
-                                  ),
-                                  child: Text(
-                                    "Ya, Hapus",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                onTap: () async {
-                                  try {
-                                    showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (ctx) {
-                                        return Dialog(
-                                          insetPadding: EdgeInsets.symmetric(
-                                            horizontal: 148,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: SizedBox(
-                                            height: 100,
-                                            child: const Center(
-                                              child: SpinKitChasingDots(
-                                                color: Colors.blue,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                    await db.deleteAllVisitData();
-                                    if (!context.mounted) return;
-                                    Navigator.pop(context);
-                                    Navigator.pop(context);
-                                  } catch (e) {
-                                    if (!context.mounted) return;
-                                    SnackBarUtil.showSnack(
-                                      context,
-                                      'Gagal menghapus data kunjungan ${e.toString()}',
-                                    );
-                                  }
-                                },
-                              ),
-                              SizedBox(width: 24.0),
-                            ],
-                          ),
-                          Spacer(),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-            icon: const Icon(Icons.delete),
+            icon: const Icon(Icons.delete_outline),
           ),
         ],
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 Expanded(
                   child: TextFormField(
                     controller: searchController,
+                    onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Search',
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            visits = searchVisit(visits, searchController.text);
-                          });
-                        },
-                        icon: Icon(Icons.search),
+                      hintText: 'Cari nama, NIP, atau departemen',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
                       ),
                     ),
                   ),
                 ),
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: _pickDateRange,
+                  icon: const Icon(Icons.date_range_rounded),
+                  label: const Text('Filter Tanggal'),
+                ),
+                if (selectedRange != null) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => setState(() => selectedRange = null),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
               ],
             ),
           ),
-          SizedBox(height: 6.0),
-          _visitList(),
+          Expanded(
+            child: StreamBuilder(
+              stream: db.getVisits(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: SpinKitChasingDots(color: GlobalColors.primary),
+                  );
+                }
+
+                final docs = snapshot.data?.docs ?? [];
+                final allVisits =
+                    docs.map((e) => e.data() as TransactionVisit).toList()
+                      ..sort((a, b) {
+                        final formatter = DateFormat('dd-MMM-yy HH:mm');
+                        return formatter
+                            .parse(b.end)
+                            .compareTo(formatter.parse(a.end));
+                      });
+                final visits = _filterVisits(allVisits);
+
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              const Color(0xFF6F7BF7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Laporan Kunjungan',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${visits.length} data siap ditinjau',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _rangeLabel,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () => Utils.exportVisits(visits),
+                              child: Image.asset(
+                                iconExport,
+                                width: 22,
+                                height: 22,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: visits.isEmpty
+                          ? const Center(
+                              child: Text('Tidak ada data kunjungan'),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              itemCount: visits.length,
+                              itemBuilder: (context, index) {
+                                final item = visits[index];
+                                return ListItem<TransactionVisit>(
+                                  v: item,
+                                  onEdit: () => Navigator.pushNamed(
+                                    context,
+                                    editVisitView,
+                                    arguments: item,
+                                  ),
+                                  onDelete: () => db.deleteVisit(item),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
-  }
-
-  Widget _visitList() {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * .79,
-      width: MediaQuery.of(context).size.width,
-      child: StreamBuilder(
-        stream: db.getVisits(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            if (snapshot.data?.docs.isEmpty ?? false) {
-              visits = [];
-              return const Center(child: Text("No Data"));
-            }
-
-            if (searchController.text.isEmpty) {
-              final formatter = DateFormat("dd-MMM-yy HH:mm");
-
-              List<QueryDocumentSnapshot> sortedData =
-                  (snapshot.data?.docs ?? []).toList()..sort((a, b) {
-                    TransactionVisit dtA = a.data() as TransactionVisit;
-                    TransactionVisit dtB = b.data() as TransactionVisit;
-
-                    DateTime endA = formatter.parse(dtA.end);
-                    DateTime endB = formatter.parse(dtB.end);
-
-                    return endB.compareTo(endA); // desc, jam terakhir di atas
-                  });
-
-              visits = sortedData
-                  .map((e) => e.data() as TransactionVisit)
-                  .toList();
-            }
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: ListView.builder(
-                itemCount: visits.length,
-                itemBuilder: (context, index) {
-                  TransactionVisit item = visits[index];
-                  return ListItem<TransactionVisit>(
-                    v: item,
-                    onDelete: () => db.deleteVisit(item),
-                  );
-                },
-              ),
-            );
-          } else {
-            return const Center(child: SpinKitChasingDots(color: Colors.blue));
-          }
-        },
-      ),
-    );
-  }
-
-  List<TransactionVisit> searchVisit(
-    List<TransactionVisit> vists,
-    String query,
-  ) {
-    if (query.isEmpty) return vists;
-
-    return vists.where((v) {
-      final name = (v.employee.name ?? '').toLowerCase();
-      final search = query.toLowerCase();
-      return name.contains(search);
-    }).toList();
   }
 }

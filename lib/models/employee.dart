@@ -22,9 +22,9 @@ class EmployeeModel {
     this.color,
   });
 
-  factory EmployeeModel.fromJson(Map<String, dynamic> json) {
+  factory EmployeeModel.fromJson(Map<String, dynamic> json, {String? id}) {
     return EmployeeModel(
-      id: json['id'],
+      id: id ?? json['id'],
       nip: json['nip'],
       name: json['name'],
       status: json['status'],
@@ -44,6 +44,28 @@ class EmployeeModel {
       'deptnm': deptnm,
       'gender': gender,
     };
+  }
+
+  EmployeeModel copyWith({
+    String? id,
+    String? nip,
+    String? name,
+    String? status,
+    String? deptcode,
+    String? deptnm,
+    String? gender,
+    Color? color,
+  }) {
+    return EmployeeModel(
+      id: id ?? this.id,
+      nip: nip ?? this.nip,
+      name: name ?? this.name,
+      status: status ?? this.status,
+      deptcode: deptcode ?? this.deptcode,
+      deptnm: deptnm ?? this.deptnm,
+      gender: gender ?? this.gender,
+      color: color ?? this.color,
+    );
   }
 
   static Color _randomColor(String? key) {

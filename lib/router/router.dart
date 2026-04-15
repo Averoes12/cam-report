@@ -1,5 +1,8 @@
 import 'package:camreport/constant/route.dart';
+import 'package:camreport/models/employee.dart';
 import 'package:camreport/models/medicine.dart';
+import 'package:camreport/models/transaction_therapy.dart';
+import 'package:camreport/models/transaction_visit.dart';
 import 'package:camreport/pages/employee/add.dart';
 import 'package:camreport/pages/invoice/index.dart';
 import 'package:camreport/pages/medicine/add.dart';
@@ -21,6 +24,11 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const EmployeePage());
       case addEmployeeView:
         return MaterialPageRoute(builder: (_) => const AddEmployeePage());
+      case editEmployeeView:
+        final argument = settings.arguments as EmployeeModel;
+        return MaterialPageRoute(
+          builder: (_) => AddEmployeePage(employee: argument),
+        );
       case medicineView:
         return MaterialPageRoute(builder: (_) => const MedicinePage());
       case addMedicineView:
@@ -34,10 +42,18 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const VisitPage());
       case addVisitView:
         return MaterialPageRoute(builder: (_) => const AddVisitPage());
+      case editVisitView:
+        final argument = settings.arguments as TransactionVisit;
+        return MaterialPageRoute(builder: (_) => AddVisitPage(visit: argument));
       case therapyView:
         return MaterialPageRoute(builder: (_) => const TherapyPage());
       case addTherapyView:
         return MaterialPageRoute(builder: (_) => const AddTherapyPage());
+      case editTherapyView:
+        final argument = settings.arguments as TransactionTherapy;
+        return MaterialPageRoute(
+          builder: (_) => AddTherapyPage(therapy: argument),
+        );
       case invoiceView:
         return MaterialPageRoute(builder: (_) => const InvoicePage());
       default:

@@ -1,13 +1,13 @@
 import 'package:camreport/models/employee.dart';
 import 'package:camreport/provider/employee.dart';
-import 'package:camreport/services/database_service.dart';
 import 'package:flareline_uikit/utils/snackbar_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
 
 class AddEmployeePage extends StatefulWidget {
-  const AddEmployeePage({super.key});
+  final EmployeeModel? employee;
+  const AddEmployeePage({super.key, this.employee});
 
   @override
   State<AddEmployeePage> createState() => _AddEmployeePageState();
@@ -23,20 +23,62 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
   TextEditingController statusController = TextEditingController();
   String gender = '';
 
+  String? get selectedGenderLabel {
+    final value = gender.trim().toLowerCase();
+    if (value == 'f' || value == 'female' || value == 'perempuan') {
+      return 'Perempuan';
+    }
+    if (value == 'l' ||
+        value == 'm' ||
+        value == 'male' ||
+        value == 'laki-laki' ||
+        value == 'lakilaki') {
+      return 'Laki-laki';
+    }
+    return null;
+  }
+
+  bool get isEdit => widget.employee != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final employee = widget.employee;
+    if (employee != null) {
+      nipController.text = employee.nip ?? '';
+      nameController.text = employee.name ?? '';
+      dcController.text = employee.deptcode ?? '';
+      dnController.text = employee.deptnm ?? '';
+      statusController.text = employee.status ?? '';
+      gender = employee.gender ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    nipController.dispose();
+    nameController.dispose();
+    dcController.dispose();
+    dnController.dispose();
+    statusController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       bottom: true,
       child: Scaffold(
-        appBar: AppBar(title: const Text("Tambah Karyawan")),
+        appBar: AppBar(
+          title: Text(isEdit ? "Ubah Karyawan" : "Tambah Karyawan"),
+        ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Consumer<EmployeeProvider>(
             builder: (_, prov, _) {
               return Form(
                 key: formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: ListView(
                   children: [
                     TextFormField(
                       controller: nipController,
@@ -92,6 +134,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                       },
                     ),
                     DropdownButtonFormField<String>(
+                      initialValue: selectedGenderLabel,
                       decoration: InputDecoration(labelText: 'Jenis Kelamin'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -111,8 +154,10 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         setState(() {
                           if ('Perempuan' == value) {
                             gender = 'F';
-                          } else {
+                          } else if ('Laki-laki' == value) {
                             gender = 'L';
+                          } else {
+                            gender = '';
                           }
                         });
                       },
@@ -131,23 +176,32 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                                     deptcode: dcController.text,
                                     deptnm: dnController.text,
                                     gender: gender,
+                                    id: widget.employee?.id,
                                   );
-                                  await context
-                                      .read<EmployeeProvider>()
-                                      .addEmployee(employee);
+                                  if (isEdit) {
+                                    await context
+                                        .read<EmployeeProvider>()
+                                        .editEmployee(employee);
+                                  } else {
+                                    await context
+                                        .read<EmployeeProvider>()
+                                        .addEmployee(employee);
+                                  }
                                   prov.loading = false;
                                   if (!context.mounted) return;
                                   SnackBarUtil.showSuccess(
                                     context,
-                                    'Berhasil menambahkan data karyawan',
+                                    isEdit
+                                        ? 'Berhasil mengubah data karyawan'
+                                        : 'Berhasil menambahkan data karyawan',
                                   );
                                   Navigator.pop(context);
                                 } catch (e) {
-                                  prov.loading = false;                                  
+                                  prov.loading = false;
                                   if (!context.mounted) return;
                                   SnackBarUtil.showSnack(
                                     context,
-                                    'Gagal menambahkan data karyawan. ${e.toString()}',
+                                    '${isEdit ? 'Gagal mengubah' : 'Gagal menambahkan'} data karyawan. ${e.toString()}',
                                   );
                                 }
                               }
@@ -159,7 +213,7 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                           color: Colors.blue,
                           size: 12.0,
                         ),
-                        child: Text('Simpan'),
+                        child: Text(isEdit ? 'Update' : 'Simpan'),
                       ),
                     ),
                   ],

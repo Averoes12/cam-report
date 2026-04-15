@@ -2,13 +2,19 @@ import 'package:camreport/common/employee_item.dart';
 import 'package:camreport/models/employee.dart';
 import 'package:camreport/models/medicine.dart';
 
-class TransactionTherapy implements ListDisplayable{
-  final String start, end, diagnose, note, spenTm, result, symptoms;
+class TransactionTherapy implements ListDisplayable {
+  final String? id;
+  @override
+  final String start;
+  @override
+  final String end;
+  final String diagnose, note, spenTm, result, symptoms;
   final EmployeeModel employee;
   final List<MedicineModel> medicines;
   final int grandTotal, perclient;
 
   TransactionTherapy({
+    this.id,
     required this.start,
     required this.end,
     required this.employee,
@@ -22,11 +28,12 @@ class TransactionTherapy implements ListDisplayable{
     required this.perclient,
   });
 
-  factory TransactionTherapy.fromJson(Map<String, dynamic> json) {
+  factory TransactionTherapy.fromJson(Map<String, dynamic> json, {String? id}) {
     List<MedicineModel> medicines = (json['medicine'] as List)
         .map((e) => MedicineModel.fromJson(e))
         .toList();
     return TransactionTherapy(
+      id: id ?? json['id'],
       start: json['startDt'],
       end: json['endDt'],
       employee: EmployeeModel.fromJson(json['employee']),
@@ -56,13 +63,43 @@ class TransactionTherapy implements ListDisplayable{
       'perclient': perclient,
     };
   }
-  
+
+  TransactionTherapy copyWith({
+    String? id,
+    String? start,
+    String? end,
+    EmployeeModel? employee,
+    List<MedicineModel>? medicines,
+    int? grandTotal,
+    String? spenTm,
+    String? diagnose,
+    String? note,
+    String? result,
+    String? symptoms,
+    int? perclient,
+  }) {
+    return TransactionTherapy(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      employee: employee ?? this.employee,
+      medicines: medicines ?? this.medicines,
+      grandTotal: grandTotal ?? this.grandTotal,
+      spenTm: spenTm ?? this.spenTm,
+      diagnose: diagnose ?? this.diagnose,
+      note: note ?? this.note,
+      result: result ?? this.result,
+      symptoms: symptoms ?? this.symptoms,
+      perclient: perclient ?? this.perclient,
+    );
+  }
+
   @override
   String get deptnm => employee.deptnm ?? '';
-  
+
   @override
   String get name => employee.name ?? '';
-  
+
   @override
   String get nip => employee.nip ?? '';
 }

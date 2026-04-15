@@ -48,6 +48,9 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
     if (widget.medicine != null) {
       initData();
     }
+    fsController.addListener(_syncLastStock);
+    asController.addListener(_syncLastStock);
+    rsController.addListener(_syncLastStock);
     super.initState();
   }
 
@@ -60,6 +63,33 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
     rsController.text = widget.medicine?.returnedStock.toString() ?? '';
     lsController.text = widget.medicine?.lastStock.toString() ?? '';
     expDtController.text = widget.medicine?.expDt ?? '';
+    _syncLastStock();
+  }
+
+  int _toInt(String value) => int.tryParse(value) ?? 0;
+
+  void _syncLastStock() {
+    final total =
+        _toInt(fsController.text) +
+        _toInt(asController.text) -
+        _toInt(rsController.text);
+    lsController.text = total < 0 ? '0' : '$total';
+  }
+
+  @override
+  void dispose() {
+    fsController.removeListener(_syncLastStock);
+    asController.removeListener(_syncLastStock);
+    rsController.removeListener(_syncLastStock);
+    nameController.dispose();
+    measureController.dispose();
+    fsController.dispose();
+    priceController.dispose();
+    asController.dispose();
+    rsController.dispose();
+    lsController.dispose();
+    expDtController.dispose();
+    super.dispose();
   }
 
   @override
@@ -157,12 +187,7 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
                   controller: lsController,
                   decoration: InputDecoration(labelText: 'Stok Akhir'),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Stok Akhir tidak boleh kosong';
-                    }
-                    return null;
-                  },
+                  readOnly: true,
                 ),
                 TextFormField(
                   controller: expDtController,
@@ -196,9 +221,9 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
                                 measure: measureController.text,
                                 price: int.parse(priceController.text),
                                 firstStock: int.parse(fsController.text),
-                                arrivedStock: int.parse(asController.text),
-                                returnedStock: int.parse(rsController.text),
-                                lastStock: int.parse(lsController.text),
+                                arrivedStock: _toInt(asController.text),
+                                returnedStock: _toInt(rsController.text),
+                                lastStock: _toInt(lsController.text),
                                 expDt: expDtController.text,
                               );
                               if (widget.medicine != null) {
@@ -224,7 +249,10 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
                               _loading = false;
                               debugPrint("ERROR: $e");
                               if (!context.mounted) return;
-                              SnackBarUtil.showSnack(context, 'Gagal menambahkan obat');
+                              SnackBarUtil.showSnack(
+                                context,
+                                'Gagal menambahkan obat',
+                              );
                             }
                           }
                         }
