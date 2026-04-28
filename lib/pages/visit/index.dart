@@ -45,7 +45,6 @@ class _VisitPageState extends State<VisitPage> {
     final formatter = DateFormat('dd-MMM-yy HH:mm');
 
     final filtered = visits.where((visit) {
-      if (visit.category == 'therapy') return false;
       if (selectedRange == null) return true;
 
       final visitDate = formatter.parse(visit.end);
@@ -73,6 +72,46 @@ class _VisitPageState extends State<VisitPage> {
           (visit.employee.nip ?? '').toLowerCase().contains(query) ||
           (visit.employee.deptnm ?? '').toLowerCase().contains(query);
     }).toList();
+  }
+
+  Future<void> _openVisitEditor(TransactionVisit visit) async {
+    if (visit.category == 'therapy') {
+      final therapyId = visit.id;
+      if (therapyId == null) {
+        if (!mounted) return;
+        SnackBarUtil.showSnack(context, 'Data berobat tidak valid');
+        return;
+      }
+
+      final therapy = await db.getTherapyById(therapyId);
+      if (!mounted) return;
+      if (therapy == null) {
+        SnackBarUtil.showSnack(context, 'Data berobat tidak ditemukan');
+        return;
+      }
+
+      Navigator.pushNamed(context, editTherapyView, arguments: therapy);
+      return;
+    }
+
+    Navigator.pushNamed(context, editVisitView, arguments: visit);
+  }
+
+  Future<void> _deleteVisitEntry(TransactionVisit visit) async {
+    try {
+      if (visit.category == 'therapy') {
+        final therapyId = visit.id;
+        if (therapyId == null) {
+          throw Exception('Data berobat tidak valid');
+        }
+        await db.deleteTherapyById(therapyId);
+      } else {
+        await db.deleteVisit(visit);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      SnackBarUtil.showSnack(context, 'Gagal menghapus data. $e');
+    }
   }
 
   Future<void> _deleteAllVisits() async {
@@ -304,12 +343,8 @@ class _VisitPageState extends State<VisitPage> {
                                 final item = visits[index];
                                 return ListItem<TransactionVisit>(
                                   v: item,
-                                  onEdit: () => Navigator.pushNamed(
-                                    context,
-                                    editVisitView,
-                                    arguments: item,
-                                  ),
-                                  onDelete: () => db.deleteVisit(item),
+                                  onEdit: () => _openVisitEditor(item),
+                                  onDelete: () => _deleteVisitEntry(item),
                                 );
                               },
                             ),

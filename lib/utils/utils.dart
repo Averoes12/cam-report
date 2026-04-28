@@ -61,7 +61,11 @@ class Utils {
       }
 
       // Isi data mulai dari baris ke-2
-      visits = visits.reversed.toList();
+      final formatter = DateFormat('dd-MMM-yy HH:mm');
+      visits = [...visits]
+        ..sort(
+          (a, b) => formatter.parse(a.end).compareTo(formatter.parse(b.end)),
+        );
       int rowIndex = 2;
       for (int i = 0; i < visits.length; i++) {
         final startRow = rowIndex;

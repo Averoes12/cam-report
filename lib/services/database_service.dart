@@ -295,6 +295,11 @@ class DatabaseService {
     return trxTherapyCollection.snapshots();
   }
 
+  Future<TransactionTherapy?> getTherapyById(String id) async {
+    final snapshot = await trxTherapyCollection.doc(id).get();
+    return snapshot.data();
+  }
+
   Future<void> insertTherapy(TransactionTherapy data) async {
     final batch = _firestore.batch();
     final trxTherapyRef = trxTherapyCollection.doc();
@@ -339,6 +344,16 @@ class DatabaseService {
       after: const [],
     );
     await batch.commit();
+  }
+
+  Future<void> deleteTherapyById(String id) async {
+    final snapshot = await trxTherapyCollection.doc(id).get();
+    final therapy = snapshot.data();
+    if (therapy == null) {
+      throw Exception('Data berobat tidak ditemukan');
+    }
+
+    await deleteTherapy(therapy);
   }
 
   Future<void> deleteAllVisitData() async {
