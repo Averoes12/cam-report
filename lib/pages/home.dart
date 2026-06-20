@@ -4,6 +4,7 @@ import 'package:camreport/pages/medicine/index.dart';
 import 'package:camreport/pages/therapy/index.dart';
 import 'package:camreport/pages/visit/index.dart';
 import 'package:camreport/theme/global_colors.dart';
+import 'package:camreport/pages/ocr/ocr_page.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -26,6 +27,7 @@ class _HomePageState extends State<HomePage> {
 
   final List<_MenuEntry> _otherMenu = const [
     _MenuEntry('Invoice', Icons.receipt_long_rounded, 4),
+    _MenuEntry('Handwriting OCR', Icons.document_scanner_rounded, 5),
     _MenuEntry('Admin Panel', Icons.admin_panel_settings_rounded, 2),
   ];
 
@@ -41,6 +43,8 @@ class _HomePageState extends State<HomePage> {
         return const MedicinePage();
       case 4:
         return const InvoicePage();
+      case 5:
+        return const OCRPage();
       default:
         return const SizedBox();
     }
@@ -77,6 +81,10 @@ class _HomePageState extends State<HomePage> {
             NavigationDestination(
               icon: Icon(Icons.receipt_long_rounded),
               label: 'Invoice',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.document_scanner_rounded),
+              label: 'OCR',
             ),
           ],
         ),

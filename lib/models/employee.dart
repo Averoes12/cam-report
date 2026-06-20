@@ -29,7 +29,7 @@ class EmployeeModel {
       name: json['name'],
       status: json['status'],
       deptcode: json['deptcode'],
-      deptnm: json['deptnm'],
+      deptnm: json['deptnm'] ?? json['deptname'],
       gender: json['gender'],
       color: _randomColor(json['nip']),
     );

@@ -8,6 +8,8 @@ import 'package:camreport/utils/utils.dart';
 import 'package:flareline_uikit/utils/snackbar_util.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:camreport/pages/visit/modals/ocr_bottom_sheet.dart';
 
 class AddTherapyPage extends StatefulWidget {
   final TransactionTherapy? therapy;
@@ -242,6 +244,107 @@ class _AddTherapyPageState extends State<AddTherapyPage> {
     );
   }
 
+  Future<void> _scanEmployeeAndMedicine() async {
+    final result = await showModalBottomSheet<OCRResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => OCRBottomSheet(
+        promptContext: "Extract handwriting text from this image. Return ONLY a valid JSON object with: 'employee_identifier' (string, can be name OR NIP/ID of person) and 'medicines' (list of strings, medicine names). No markdown, no prefixes.",
+      ),
+    );
+    if (result != null && result.text.isNotEmpty) {
+      _processOcrJson(result.text);
+    }
+  }
+
+  void _processOcrJson(String jsonString) {
+    try {
+      String cleanJson = jsonString.replaceAll('```json', '').replaceAll('```', '').trim();
+      final Map<String, dynamic> data = jsonDecode(cleanJson);
+      
+      final employeeIdentifier = data['employee_identifier'] as String?;
+      final medicinesList = (data['medicines'] as List?)?.cast<String>();
+
+      if (employeeIdentifier != null && employeeIdentifier.isNotEmpty) {
+        _searchAndSetEmployee(employeeIdentifier);
+      }
+
+      if (medicinesList != null && medicinesList.isNotEmpty) {
+        _searchAndAddMedicines(medicinesList);
+      }
+    } catch (e) {
+      SnackBarUtil.showSnack(context, 'Gagal memproses hasil AI: $e');
+    }
+  }
+
+  Future<void> _searchAndSetEmployee(String identifier) async {
+    final db = DatabaseService();
+    final snapshot = await db.getEmployees().first;
+    final allEmployees = snapshot.docs.map((e) => e.data() as EmployeeModel).toList();
+    
+    final search = identifier.toLowerCase();
+    EmployeeModel? bestMatch;
+    
+    for (var emp in allEmployees) {
+      final name = (emp.name ?? '').toLowerCase();
+      final nip = (emp.nip ?? '').toLowerCase();
+      if (name.contains(search) || nip.contains(search)) {
+        bestMatch = emp;
+        break;
+      }
+    }
+
+    if (bestMatch != null) {
+      setState(() {
+        employee = bestMatch!;
+      });
+      SnackBarUtil.showSuccess(context, 'Karyawan ditemukan: ${bestMatch.name} (${bestMatch.nip})');
+    } else {
+      SnackBarUtil.showSnack(context, 'Karyawan tidak ditemukan untuk: $identifier');
+    }
+  }
+
+  Future<void> _searchAndAddMedicines(List<String> medicineNames) async {
+    final db = DatabaseService();
+    final snapshot = await db.getMedicines().first;
+    final allMedicines = snapshot.docs.map((e) => e.data() as MedicineModel).toList();
+    
+    List<MedicineModel> foundMedicines = [];
+    
+    for (var medName in medicineNames) {
+      final search = medName.toLowerCase();
+      for (var med in allMedicines) {
+        if ((med.name ?? '').toLowerCase().contains(search)) {
+          foundMedicines.add(med);
+          break; // Stop after first match for this name
+        }
+      }
+    }
+
+    if (foundMedicines.isNotEmpty) {
+      setState(() {
+        final existing = {
+          for (final item in selectedMedicines) _medicineKey(item): item,
+        };
+        
+        for (var med in foundMedicines) {
+           final previous = existing[_medicineKey(med)];
+           final qty = (previous?.total ?? 0) + 1;
+           existing[_medicineKey(med)] = med.copyWith(
+              total: qty,
+              subTotal: (med.price ?? 0) * qty,
+           );
+        }
+        selectedMedicines = existing.values.toList();
+        _recalculateGrandTotal();
+      });
+      SnackBarUtil.showSuccess(context, 'Berhasil menambahkan ${foundMedicines.length} obat dari OCR');
+    } else {
+      SnackBarUtil.showSnack(context, 'Tidak ada obat yang cocok dengan hasil OCR');
+    }
+  }
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     if (employee.name == null) {
@@ -321,6 +424,13 @@ class _AddTherapyPageState extends State<AddTherapyPage> {
         title: Text(
           isEdit ? 'Ubah Laporan Pengobatan' : 'Input Laporan Pengobatan',
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.document_scanner),
+            tooltip: 'Scan Karyawan & Obat via OCR',
+            onPressed: _scanEmployeeAndMedicine,
+          ),
+        ],
       ),
       body: Container(
         color: Theme.of(context).colorScheme.surface,
