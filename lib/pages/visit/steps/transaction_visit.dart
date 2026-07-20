@@ -138,10 +138,14 @@ class _AddVisitPageState extends State<AddVisitPage> {
     );
     if (date == null || !mounted) return;
 
+    final initialTimeDt = _startDt.add(const Duration(minutes: 1));
     final time = await showTimePicker(
       initialEntryMode: TimePickerEntryMode.inputOnly,
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: TimeOfDay(
+        hour: initialTimeDt.hour,
+        minute: initialTimeDt.minute,
+      ),
     );
     if (time == null) return;
 
@@ -250,7 +254,8 @@ class _AddVisitPageState extends State<AddVisitPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => OCRBottomSheet(
-        promptContext: "Extract handwriting text from this image. Return ONLY a valid JSON object with: 'employee_identifier' (string, can be name OR NIP/ID of person) and 'medicines' (list of strings, medicine names). No markdown, no prefixes.",
+        promptContext:
+            "Extract handwriting text from this image. Return ONLY a valid JSON object with: 'employee_identifier' (string, can be name OR NIP/ID of person) and 'medicines' (list of strings, medicine names). No markdown, no prefixes.",
       ),
     );
     if (result != null && result.text.isNotEmpty) {
@@ -260,9 +265,12 @@ class _AddVisitPageState extends State<AddVisitPage> {
 
   void _processOcrJson(String jsonString) {
     try {
-      String cleanJson = jsonString.replaceAll('```json', '').replaceAll('```', '').trim();
+      String cleanJson = jsonString
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
       final Map<String, dynamic> data = jsonDecode(cleanJson);
-      
+
       final employeeIdentifier = data['employee_identifier'] as String?;
       final medicinesList = (data['medicines'] as List?)?.cast<String>();
 
@@ -281,11 +289,13 @@ class _AddVisitPageState extends State<AddVisitPage> {
   Future<void> _searchAndSetEmployee(String identifier) async {
     final db = DatabaseService();
     final snapshot = await db.getEmployees().first;
-    final allEmployees = snapshot.docs.map((e) => e.data() as EmployeeModel).toList();
-    
+    final allEmployees = snapshot.docs
+        .map((e) => e.data() as EmployeeModel)
+        .toList();
+
     final search = identifier.toLowerCase();
     EmployeeModel? bestMatch;
-    
+
     for (var emp in allEmployees) {
       final name = (emp.name ?? '').toLowerCase();
       final nip = (emp.nip ?? '').toLowerCase();
@@ -299,19 +309,27 @@ class _AddVisitPageState extends State<AddVisitPage> {
       setState(() {
         employee = bestMatch!;
       });
-      SnackBarUtil.showSuccess(context, 'Karyawan ditemukan: ${bestMatch.name} (${bestMatch.nip})');
+      SnackBarUtil.showSuccess(
+        context,
+        'Karyawan ditemukan: ${bestMatch.name} (${bestMatch.nip})',
+      );
     } else {
-      SnackBarUtil.showSnack(context, 'Karyawan tidak ditemukan untuk: $identifier');
+      SnackBarUtil.showSnack(
+        context,
+        'Karyawan tidak ditemukan untuk: $identifier',
+      );
     }
   }
 
   Future<void> _searchAndAddMedicines(List<String> medicineNames) async {
     final db = DatabaseService();
     final snapshot = await db.getMedicines().first;
-    final allMedicines = snapshot.docs.map((e) => e.data() as MedicineModel).toList();
-    
+    final allMedicines = snapshot.docs
+        .map((e) => e.data() as MedicineModel)
+        .toList();
+
     List<MedicineModel> foundMedicines = [];
-    
+
     for (var medName in medicineNames) {
       final search = medName.toLowerCase();
       for (var med in allMedicines) {
@@ -327,21 +345,27 @@ class _AddVisitPageState extends State<AddVisitPage> {
         final existing = {
           for (final item in selectedMedicines) _medicineKey(item): item,
         };
-        
+
         for (var med in foundMedicines) {
-           final previous = existing[_medicineKey(med)];
-           final qty = (previous?.total ?? 0) + 1;
-           existing[_medicineKey(med)] = med.copyWith(
-              total: qty,
-              subTotal: (med.price ?? 0) * qty,
-           );
+          final previous = existing[_medicineKey(med)];
+          final qty = (previous?.total ?? 0) + 1;
+          existing[_medicineKey(med)] = med.copyWith(
+            total: qty,
+            subTotal: (med.price ?? 0) * qty,
+          );
         }
         selectedMedicines = existing.values.toList();
         _recalculateGrandTotal();
       });
-      SnackBarUtil.showSuccess(context, 'Berhasil menambahkan ${foundMedicines.length} obat dari OCR');
+      SnackBarUtil.showSuccess(
+        context,
+        'Berhasil menambahkan ${foundMedicines.length} obat dari OCR',
+      );
     } else {
-      SnackBarUtil.showSnack(context, 'Tidak ada obat yang cocok dengan hasil OCR');
+      SnackBarUtil.showSnack(
+        context,
+        'Tidak ada obat yang cocok dengan hasil OCR',
+      );
     }
   }
 
@@ -440,6 +464,7 @@ class _AddVisitPageState extends State<AddVisitPage> {
             children: [
               _section(
                 child: Column(
+                  spacing: 16,
                   children: [
                     TextFormField(
                       controller: _startDtController,
@@ -547,7 +572,7 @@ class _AddVisitPageState extends State<AddVisitPage> {
                                   icon: const Icon(Icons.remove_circle_outline),
                                 ),
                                 SizedBox(
-                                  width: 52,
+                                  width: 100,
                                   child: TextFormField(
                                     key: ValueKey(
                                       '${_medicineKey(medicine)}_${medicine.total}',
@@ -593,6 +618,7 @@ class _AddVisitPageState extends State<AddVisitPage> {
               ),
               _section(
                 child: Column(
+                  spacing: 16,
                   children: [
                     TextFormField(
                       controller: _noteController,
