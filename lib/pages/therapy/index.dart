@@ -44,11 +44,10 @@ class _TherapyPageState extends State<TherapyPage> {
     List<TransactionTherapy> therapies,
   ) {
     final query = searchController.text.toLowerCase();
-    final formatter = DateFormat('dd-MMM-yy HH:mm');
-
     final filtered = therapies.where((therapy) {
       if (selectedRange == null) return true;
-      final therapyDate = formatter.parse(therapy.end);
+      final therapyDate = Utils.tryParseDate(therapy.end);
+      if (therapyDate == null) return false;
       final start = DateTime(
         selectedRange!.start.year,
         selectedRange!.start.month,
@@ -179,10 +178,11 @@ class _TherapyPageState extends State<TherapyPage> {
                 final allTherapies =
                     docs.map((e) => e.data() as TransactionTherapy).toList()
                       ..sort((a, b) {
-                        final formatter = DateFormat('dd-MMM-yy HH:mm');
-                        return formatter
-                            .parse(b.end)
-                            .compareTo(formatter.parse(a.end));
+                        final dateA = Utils.tryParseDate(a.end) ??
+                            DateTime.fromMillisecondsSinceEpoch(0);
+                        final dateB = Utils.tryParseDate(b.end) ??
+                            DateTime.fromMillisecondsSinceEpoch(0);
+                        return dateB.compareTo(dateA);
                       });
                 final therapies = _filterTherapies(allTherapies);
 

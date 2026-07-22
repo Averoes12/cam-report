@@ -60,7 +60,7 @@ class _AddVisitPageState extends State<AddVisitPage> {
   }
 
   void _populateVisit(TransactionVisit visit) {
-    final start = DateFormat('dd-MMM-yy HH:mm').parse(visit.start);
+    final start = Utils.tryParseDate(visit.start) ?? DateTime.now();
     _startDt = start;
     employee = visit.employee;
     originalVisit = visit.copyWith(medicines: _cloneMedicines(visit.medicines));

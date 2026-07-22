@@ -42,12 +42,11 @@ class _VisitPageState extends State<VisitPage> {
 
   List<TransactionVisit> _filterVisits(List<TransactionVisit> visits) {
     final query = searchController.text.toLowerCase();
-    final formatter = DateFormat('dd-MMM-yy HH:mm');
-
     final filtered = visits.where((visit) {
       if (selectedRange == null) return true;
 
-      final visitDate = formatter.parse(visit.end);
+      final visitDate = Utils.tryParseDate(visit.end);
+      if (visitDate == null) return false;
       final start = DateTime(
         selectedRange!.start.year,
         selectedRange!.start.month,
@@ -261,10 +260,11 @@ class _VisitPageState extends State<VisitPage> {
                 final allVisits =
                     docs.map((e) => e.data() as TransactionVisit).toList()
                       ..sort((a, b) {
-                        final formatter = DateFormat('dd-MMM-yy HH:mm');
-                        return formatter
-                            .parse(b.end)
-                            .compareTo(formatter.parse(a.end));
+                        final dateA = Utils.tryParseDate(a.end) ??
+                            DateTime.fromMillisecondsSinceEpoch(0);
+                        final dateB = Utils.tryParseDate(b.end) ??
+                            DateTime.fromMillisecondsSinceEpoch(0);
+                        return dateB.compareTo(dateA);
                       });
                 final visits = _filterVisits(allVisits);
 

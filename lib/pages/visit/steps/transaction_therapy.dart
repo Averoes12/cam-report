@@ -61,7 +61,7 @@ class _AddTherapyPageState extends State<AddTherapyPage> {
   }
 
   void _populateTherapy(TransactionTherapy therapy) {
-    _startDt = DateFormat('dd-MMM-yy HH:mm').parse(therapy.start);
+    _startDt = Utils.tryParseDate(therapy.start) ?? DateTime.now();
     employee = therapy.employee;
     originalTherapy = therapy.copyWith(
       medicines: _cloneMedicines(therapy.medicines),

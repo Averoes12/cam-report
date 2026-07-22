@@ -22,6 +22,37 @@ class Utils {
     return formatter.format(number);
   }
 
+  static DateTime? tryParseDate(String? dateStr) {
+    if (dateStr == null) return null;
+    final trimmed = dateStr.trim();
+    if (trimmed.isEmpty) return null;
+
+    final patterns = [
+      'dd-MMM-yy HH:mm',
+      'dd-MMM-yy',
+      'dd-MMM-yyyy HH:mm',
+      'dd-MMM-yyyy',
+      'dd/MM/yyyy HH:mm',
+      'dd/MM/yyyy',
+      'dd-MM-yyyy HH:mm',
+      'dd-MM-yyyy',
+      'yyyy-MM-dd HH:mm:ss',
+      'yyyy-MM-dd HH:mm',
+      'yyyy-MM-dd',
+    ];
+
+    for (final pattern in patterns) {
+      try {
+        return DateFormat(pattern, 'en_US').parse(trimmed);
+      } catch (_) {}
+      try {
+        return DateFormat(pattern).parse(trimmed);
+      } catch (_) {}
+    }
+
+    return DateTime.tryParse(trimmed);
+  }
+
   static Future<void> exportVisits(List<TransactionVisit> visits) async {
     try {
       // Buat workbook & ambil sheet pertama
@@ -61,11 +92,12 @@ class Utils {
       }
 
       // Isi data mulai dari baris ke-2
-      final formatter = DateFormat('dd-MMM-yy HH:mm');
       visits = [...visits]
-        ..sort(
-          (a, b) => formatter.parse(a.end).compareTo(formatter.parse(b.end)),
-        );
+        ..sort((a, b) {
+          final dateA = Utils.tryParseDate(a.end) ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final dateB = Utils.tryParseDate(b.end) ?? DateTime.fromMillisecondsSinceEpoch(0);
+          return dateA.compareTo(dateB);
+        });
       int rowIndex = 2;
       for (int i = 0; i < visits.length; i++) {
         final startRow = rowIndex;
@@ -107,11 +139,11 @@ class Utils {
               }
             } else if (col == 1) {
               if (row[col] != "") {
-                cell.dateTime = DateFormat(
-                  'dd-MMM-yy',
-                  'en_US',
-                ).parse(row[col].toString().trim());
-                cell.numberFormat = 'dd-MMM-yy';
+                final parsed = Utils.tryParseDate(row[col].toString());
+                if (parsed != null) {
+                  cell.dateTime = parsed;
+                  cell.numberFormat = 'dd-MMM-yy';
+                }
               }
             } else if (col == 10 || col == 11 || col == 12) {
               // kalau nilainya numeric
@@ -341,11 +373,11 @@ class Utils {
               }
             } else if (col == 1) {
               if (row[col] != "") {
-                cell.dateTime = DateFormat(
-                  'dd-MMM-yy',
-                  'en_US',
-                ).parse(row[col].toString().trim());
-                cell.numberFormat = 'dd-MMM-yy';
+                final parsed = Utils.tryParseDate(row[col].toString());
+                if (parsed != null) {
+                  cell.dateTime = parsed;
+                  cell.numberFormat = 'dd-MMM-yy';
+                }
               }
             } else if (col == 16 || col == 17 || col == 18) {
               // kalau nilainya numeric
@@ -450,7 +482,8 @@ class Utils {
       // FILTER PERIODE
       // =====================================================
       final filtered = allData.where((visit) {
-        final date = DateFormat("dd-MMM-yy HH:mm").parse(visit.end);
+        final date = Utils.tryParseDate(visit.end);
+        if (date == null) return false;
 
         return !date.isBefore(startPeriod) && !date.isAfter(endPeriod);
       }).toList();
@@ -548,7 +581,7 @@ class Utils {
 
         for (int i = 0; i < data.length; i++) {
           final visit = data[i];
-          final parsedDate = DateFormat("dd-MMM-yy HH:mm").parse(visit.end);
+          final parsedDate = Utils.tryParseDate(visit.end);
 
           final noCell = sheet.getRangeByIndex(rowIndex, 1);
 
@@ -559,8 +592,10 @@ class Utils {
           }
 
           final dateCell = sheet.getRangeByIndex(rowIndex, 2);
-          dateCell.dateTime = parsedDate;
-          dateCell.numberFormat = 'dd-mmm-yy';
+          if (parsedDate != null) {
+            dateCell.dateTime = parsedDate;
+            dateCell.numberFormat = 'dd-mmm-yy';
+          }
 
           sheet.getRangeByIndex(rowIndex, 3).setText(visit.employee.nip ?? "");
 

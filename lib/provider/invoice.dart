@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/transaction_visit.dart';
 import '../services/database_service.dart';
+import '../utils/utils.dart';
 
 class InvoiceProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
@@ -46,7 +47,8 @@ class InvoiceProvider extends ChangeNotifier {
 
   void _filterData() {
     final filtered = _allData.where((visit) {
-      final date = DateFormat("dd-MMM-yy HH:mm").parse(visit.end);
+      final date = Utils.tryParseDate(visit.end);
+      if (date == null) return false;
 
       return !date.isBefore(_startPeriod) && !date.isAfter(_endPeriod);
     }).toList();
