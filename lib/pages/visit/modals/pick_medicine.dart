@@ -1,3 +1,4 @@
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/constant/route.dart';
 import 'package:camreport/models/medicine.dart';
 import 'package:camreport/services/database_service.dart';
@@ -71,7 +72,7 @@ class _PickMedicineState extends State<PickMedicine> {
               ],
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            ClearableTextFormField(
               controller: searchController,
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) {
@@ -82,24 +83,18 @@ class _PickMedicineState extends State<PickMedicine> {
                   );
                 });
               },
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Cari nama obat',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: IconButton(
-                  onPressed: () {
-                    setState(() {
-                      medicines = searchMedicines(
-                        allMedicines,
-                        searchController.text,
-                      );
-                    });
-                  },
-                  icon: const Icon(Icons.tune_rounded),
-                ),
+                prefixIcon: Icon(Icons.search_rounded),
               ),
               onChanged: (value) {
                 setState(() {
                   medicines = searchMedicines(allMedicines, value);
+                });
+              },
+              onCleared: () {
+                setState(() {
+                  medicines = List<MedicineModel>.from(allMedicines);
                 });
               },
             ),

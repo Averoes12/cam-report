@@ -1,3 +1,4 @@
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/models/employee.dart';
 import 'package:camreport/provider/employee.dart';
 import 'package:flareline_uikit/utils/snackbar_util.dart';
@@ -80,9 +81,9 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                 key: formKey,
                 child: ListView(
                   children: [
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: nipController,
-                      decoration: InputDecoration(labelText: 'NIP'),
+                      decoration: const InputDecoration(labelText: 'NIP'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'NIP tidak boleh kosong';
@@ -90,9 +91,9 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         return null;
                       },
                     ),
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: nameController,
-                      decoration: InputDecoration(labelText: 'Nama'),
+                      decoration: const InputDecoration(labelText: 'Nama'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Nama tidak boleh kosong';
@@ -100,9 +101,10 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         return null;
                       },
                     ),
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: dcController,
-                      decoration: InputDecoration(labelText: 'Departemen Code'),
+                      decoration:
+                          const InputDecoration(labelText: 'Departemen Code'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Departemen Code tidak boleh kosong';
@@ -110,9 +112,10 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         return null;
                       },
                     ),
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: dnController,
-                      decoration: InputDecoration(labelText: 'Departemen'),
+                      decoration:
+                          const InputDecoration(labelText: 'Departemen'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Departemen tidak boleh kosong';
@@ -120,9 +123,9 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
                         return null;
                       },
                     ),
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: statusController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Status',
                         hint: Text('Permanent / Kontrak'),
                       ),

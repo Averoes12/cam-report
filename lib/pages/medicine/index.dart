@@ -1,3 +1,4 @@
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/common/container_shadow.dart';
 import 'package:camreport/constant/route.dart';
 import 'package:camreport/models/medicine.dart';
@@ -46,8 +47,13 @@ class _MedicinePageState extends State<MedicinePage> {
               child: Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
+                    child: ClearableTextFormField(
                       controller: searchController,
+                      onChanged: (value) {
+                        setState(() {
+                          medicines = searchMedicines(allMedicines, value);
+                        });
+                      },
                       onFieldSubmitted: (_) {
                         setState(() {
                           medicines = searchMedicines(
@@ -56,21 +62,15 @@ class _MedicinePageState extends State<MedicinePage> {
                           );
                         });
                       },
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'Cari nama obat',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              medicines = searchMedicines(
-                                allMedicines,
-                                searchController.text,
-                              );
-                            });
-                          },
-                          icon: const Icon(Icons.tune_rounded),
-                        ),
+                        prefixIcon: Icon(Icons.search_rounded),
                       ),
+                      onCleared: () {
+                        setState(() {
+                          medicines = List<MedicineModel>.from(allMedicines);
+                        });
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),

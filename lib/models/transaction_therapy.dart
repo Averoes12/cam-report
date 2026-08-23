@@ -11,7 +11,9 @@ class TransactionTherapy implements ListDisplayable {
   final String diagnose, note, spenTm, result, symptoms;
   final EmployeeModel employee;
   final List<MedicineModel> medicines;
-  final int grandTotal, perclient;
+  @override
+  final int grandTotal;
+  final int perclient;
 
   TransactionTherapy({
     this.id,

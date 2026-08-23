@@ -1,3 +1,4 @@
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/models/medicine.dart';
 import 'package:camreport/services/database_service.dart';
 import 'package:flareline_uikit/utils/snackbar_util.dart';
@@ -131,9 +132,9 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                TextFormField(
+                ClearableTextFormField(
                   controller: nameController,
-                  decoration: InputDecoration(labelText: 'Nama Obat'),
+                  decoration: const InputDecoration(labelText: 'Nama Obat'),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Nama tidak boleh kosong';
@@ -141,9 +142,9 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
                     return null;
                   },
                 ),
-                TextFormField(
+                ClearableTextFormField(
                   controller: measureController,
-                  decoration: InputDecoration(labelText: 'Satuan'),
+                  decoration: const InputDecoration(labelText: 'Satuan'),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Satuan Code tidak boleh kosong';
@@ -151,9 +152,9 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
                     return null;
                   },
                 ),
-                TextFormField(
+                ClearableTextFormField(
                   controller: priceController,
-                  decoration: InputDecoration(labelText: 'Harga'),
+                  decoration: const InputDecoration(labelText: 'Harga'),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -162,9 +163,9 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
                     return null;
                   },
                 ),
-                TextFormField(
+                ClearableTextFormField(
                   controller: fsController,
-                  decoration: InputDecoration(labelText: 'Stok Awal'),
+                  decoration: const InputDecoration(labelText: 'Stok Awal'),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -173,25 +174,26 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
                     return null;
                   },
                 ),
-                TextFormField(
+                ClearableTextFormField(
                   controller: asController,
-                  decoration: InputDecoration(labelText: 'Obat Datang'),
+                  decoration: const InputDecoration(labelText: 'Obat Datang'),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
-                TextFormField(
+                ClearableTextFormField(
                   controller: rsController,
-                  decoration: InputDecoration(labelText: 'Pengembalian Obat'),
+                  decoration:
+                      const InputDecoration(labelText: 'Pengembalian Obat'),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
                 TextFormField(
                   controller: lsController,
-                  decoration: InputDecoration(labelText: 'Stok Akhir'),
+                  decoration: const InputDecoration(labelText: 'Stok Akhir'),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   readOnly: true,
                 ),
                 TextFormField(
                   controller: expDtController,
-                  decoration: InputDecoration(labelText: 'Tanggal Expired'),
+                  decoration: const InputDecoration(labelText: 'Tanggal Expired'),
                   readOnly: true,
                   onTap: () async {
                     DateTime? date = await showDatePicker(

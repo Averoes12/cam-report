@@ -1,3 +1,4 @@
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/constant/route.dart';
 import 'package:camreport/models/employee.dart';
 import 'package:camreport/services/database_service.dart';
@@ -69,7 +70,7 @@ class _PickEmployeeState extends State<PickEmployee> {
               ],
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            ClearableTextFormField(
               controller: searchController,
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) {
@@ -80,24 +81,18 @@ class _PickEmployeeState extends State<PickEmployee> {
                   );
                 });
               },
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Cari nama atau NIP karyawan',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: IconButton(
-                  onPressed: () {
-                    setState(() {
-                      employees = searchEmployees(
-                        allEmployees,
-                        searchController.text,
-                      );
-                    });
-                  },
-                  icon: const Icon(Icons.tune_rounded),
-                ),
+                prefixIcon: Icon(Icons.search_rounded),
               ),
               onChanged: (value) {
                 setState(() {
                   employees = searchEmployees(allEmployees, value);
+                });
+              },
+              onCleared: () {
+                setState(() {
+                  employees = List<EmployeeModel>.from(allEmployees);
                 });
               },
             ),

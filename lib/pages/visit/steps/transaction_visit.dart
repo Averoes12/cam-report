@@ -1,4 +1,5 @@
 import 'package:camreport/models/employee.dart';
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/models/medicine.dart';
 import 'package:camreport/models/transaction_visit.dart';
 import 'package:camreport/pages/visit/modals/pick_employee.dart';
@@ -620,17 +621,17 @@ class _AddVisitPageState extends State<AddVisitPage> {
                 child: Column(
                   spacing: 16,
                   children: [
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: _noteController,
                       decoration: const InputDecoration(
                         labelText: 'Keterangan (Ambil Obat/Cek)',
                       ),
                     ),
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: _diagnosaController,
                       decoration: const InputDecoration(labelText: 'Diagnosa'),
                     ),
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: _remarkController,
                       decoration: const InputDecoration(
                         labelText: 'Catatan tambahan',

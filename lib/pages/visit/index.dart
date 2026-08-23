@@ -1,3 +1,4 @@
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/common/employee_item.dart';
 import 'package:camreport/constant/assets.dart';
 import 'package:camreport/constant/route.dart';
@@ -127,45 +128,6 @@ class _VisitPageState extends State<VisitPage> {
     }
   }
 
-  Future<void> _showAddCategory() async {
-    await showModalBottomSheet(
-      context: context,
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Pilih Kategori',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                ListTile(
-                  leading: const Icon(Icons.local_hospital_outlined),
-                  title: const Text('Kunjungan'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, addVisitView);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.healing_outlined),
-                  title: const Text('Berobat'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, addTherapyView);
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   String get _rangeLabel {
     if (selectedRange == null) return 'Semua tanggal';
     final formatter = DateFormat('dd MMM yyyy');
@@ -178,9 +140,56 @@ class _VisitPageState extends State<VisitPage> {
       appBar: AppBar(
         title: const Text('Kunjungan'),
         actions: [
-          IconButton(
-            onPressed: _showAddCategory,
+          PopupMenuButton<String>(
+            tooltip: 'Tambah',
             icon: const Icon(Icons.add_circle_outline),
+            position: PopupMenuPosition.under,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 4,
+            onSelected: (value) {
+              if (value == 'kunjungan') {
+                Navigator.pushNamed(context, addVisitView);
+              } else if (value == 'berobat') {
+                Navigator.pushNamed(context, addTherapyView);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                enabled: false,
+                height: 36,
+                child: Text(
+                  'Pilih Kategori',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
+              ),
+              const PopupMenuDivider(height: 8),
+              const PopupMenuItem<String>(
+                value: 'kunjungan',
+                child: Row(
+                  children: [
+                    Icon(Icons.local_hospital_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Kunjungan'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'berobat',
+                child: Row(
+                  children: [
+                    Icon(Icons.healing_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Berobat'),
+                  ],
+                ),
+              ),
+            ],
           ),
           IconButton(
             onPressed: () async {
@@ -218,9 +227,10 @@ class _VisitPageState extends State<VisitPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextFormField(
                     controller: searchController,
                     onChanged: (_) => setState(() {}),
+                    onCleared: () => setState(() {}),
                     decoration: InputDecoration(
                       hintText: 'Cari nama, NIP, atau departemen',
                       prefixIcon: const Icon(Icons.search_rounded),

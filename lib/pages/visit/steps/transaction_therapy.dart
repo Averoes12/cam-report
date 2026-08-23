@@ -1,4 +1,5 @@
 import 'package:camreport/models/employee.dart';
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/models/medicine.dart';
 import 'package:camreport/models/transaction_therapy.dart';
 import 'package:camreport/pages/visit/modals/pick_employee.dart';
@@ -621,17 +622,17 @@ class _AddTherapyPageState extends State<AddTherapyPage> {
                 child: Column(
                   spacing: 16,
                   children: [
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: _keluhanController,
                       decoration: const InputDecoration(labelText: 'Keluhan'),
                     ),
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: _resultController,
                       decoration: const InputDecoration(
                         labelText: 'Hasil Pemeriksaan',
                       ),
                     ),
-                    TextFormField(
+                    ClearableTextFormField(
                       controller: _diagnosaController,
                       decoration: const InputDecoration(labelText: 'Diagnosa'),
                     ),

@@ -1,3 +1,4 @@
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/constant/route.dart';
 import 'package:camreport/models/employee.dart';
 import 'package:camreport/provider/employee.dart';
@@ -70,27 +71,26 @@ class _EmployeePageState extends State<EmployeePage> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: TextFormField(
+                        child: ClearableTextFormField(
                           controller: searchController,
+                          onChanged: (value) {
+                            prov.searchEmployees(employees, value);
+                            setState(() {});
+                          },
                           onFieldSubmitted: (_) {
                             prov.searchEmployees(
                               employees,
                               searchController.text,
                             );
                           },
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             hintText: 'Cari nama atau NIP karyawan',
-                            prefixIcon: const Icon(Icons.search_rounded),
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                prov.searchEmployees(
-                                  employees,
-                                  searchController.text,
-                                );
-                              },
-                              icon: const Icon(Icons.tune_rounded),
-                            ),
+                            prefixIcon: Icon(Icons.search_rounded),
                           ),
+                          onCleared: () {
+                            prov.searchEmployees(employees, '');
+                            setState(() {});
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),

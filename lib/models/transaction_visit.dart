@@ -12,6 +12,7 @@ class TransactionVisit implements ListDisplayable {
   final String category;
   final EmployeeModel employee;
   final List<MedicineModel> medicines;
+  @override
   final int grandTotal;
 
   TransactionVisit({

@@ -1,4 +1,5 @@
 import 'package:camreport/theme/global_colors.dart';
+import 'package:camreport/utils/utils.dart';
 import 'package:flutter/material.dart';
 
 class ListItem<T extends ListDisplayable> extends StatelessWidget {
@@ -77,7 +78,19 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(v.deptnm, style: theme.textTheme.bodyMedium),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(v.deptnm, style: theme.textTheme.bodyMedium),
+                    Text(
+                      'Rp ${Utils.formatNumber(v.grandTotal)}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: GlobalColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
@@ -117,7 +130,7 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 SizedBox(
-                  width: 150,
+                  width: 120,
                   child: Text(
                     v.nip,
                     style: theme.textTheme.titleMedium?.copyWith(
@@ -155,6 +168,31 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
                         Text(v.end, style: theme.textTheme.bodySmall),
                       ],
                     ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 140,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Total Harga',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: GlobalColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Rp ${Utils.formatNumber(v.grandTotal)}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: GlobalColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -213,4 +251,5 @@ abstract class ListDisplayable {
   String get deptnm;
   String get start;
   String get end;
+  int get grandTotal;
 }

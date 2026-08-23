@@ -1,3 +1,4 @@
+import 'package:camreport/common/clearable_text_field.dart';
 import 'package:camreport/common/employee_item.dart';
 import 'package:camreport/constant/assets.dart';
 import 'package:camreport/constant/route.dart';
@@ -136,9 +137,10 @@ class _TherapyPageState extends State<TherapyPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: ClearableTextFormField(
                     controller: searchController,
                     onChanged: (_) => setState(() {}),
+                    onCleared: () => setState(() {}),
                     decoration: InputDecoration(
                       hintText: 'Cari nama, NIP, atau departemen',
                       prefixIcon: const Icon(Icons.search_rounded),
