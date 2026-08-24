@@ -81,7 +81,13 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(v.deptnm, style: theme.textTheme.bodyMedium),
+                    Expanded(
+                      child: Text(
+                        '${v.deptnm}${v.status != null && v.status!.trim().isNotEmpty ? ' • ${v.status}' : ''}',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       'Rp ${Utils.formatNumber(v.grandTotal)}',
                       style: theme.textTheme.titleMedium?.copyWith(
@@ -145,7 +151,10 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
                     children: [
                       Text(v.name, style: theme.textTheme.titleMedium),
                       const SizedBox(height: 4),
-                      Text(v.deptnm, style: theme.textTheme.bodySmall),
+                      Text(
+                        '${v.deptnm}${v.status != null && v.status!.trim().isNotEmpty ? ' • ${v.status}' : ''}',
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),
@@ -249,6 +258,7 @@ abstract class ListDisplayable {
   String get name;
   String get nip;
   String get deptnm;
+  String? get status;
   String get start;
   String get end;
   int get grandTotal;

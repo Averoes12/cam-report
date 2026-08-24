@@ -12,3 +12,4 @@ const String addTherapyView = '/therapy/add';
 const String editTherapyView = '/therapy/edit';
 const String invoiceView = '/invoice';
 const String ocrView = '/ocr';
+const String medicineReportView = '/medicine-report';

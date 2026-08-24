@@ -101,4 +101,7 @@ class TransactionVisit implements ListDisplayable {
 
   @override
   String get nip => employee.nip ?? '';
+
+  @override
+  String? get status => employee.status;
 }

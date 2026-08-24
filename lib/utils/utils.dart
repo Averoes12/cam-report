@@ -700,6 +700,160 @@ class Utils {
     }
   }
 
+  static Future<void> exportMedicineReport({
+    required List<MedicineModel> medicines,
+    required Map<String, Map<String, int>> dailyMedicine,
+    required List<String> allDates,
+    required Map<String, String> dateLabels,
+    String periodLabel = '',
+  }) async {
+    try {
+      final workbook = xlsio.Workbook();
+      final sheet = workbook.worksheets[0];
+      sheet.name = 'LAPORAN PEMAKAIAN OBAT';
+
+      final totalColumns = 4 + allDates.length + 2;
+
+      final title = sheet.getRangeByIndex(1, 1, 1, totalColumns);
+      title.merge();
+      title.setText('REKAPITULASI PEMAKAIAN OBAT HARIAN');
+      title.cellStyle.bold = true;
+      title.cellStyle.fontSize = 14;
+      title.cellStyle.hAlign = xlsio.HAlignType.center;
+
+      if (periodLabel.isNotEmpty) {
+        final subTitle = sheet.getRangeByIndex(2, 1, 2, totalColumns);
+        subTitle.merge();
+        subTitle.setText('Periode: $periodLabel');
+        subTitle.cellStyle.bold = true;
+        subTitle.cellStyle.fontSize = 11;
+        subTitle.cellStyle.hAlign = xlsio.HAlignType.center;
+      }
+
+      int headerRow = periodLabel.isNotEmpty ? 4 : 3;
+
+      final staticHeaders = ["NO", "NAMA OBAT", "SATUAN", "HARGA SATUAN"];
+      for (int i = 0; i < staticHeaders.length; i++) {
+        final cell = sheet.getRangeByIndex(headerRow, i + 1);
+        cell.setText(staticHeaders[i]);
+        cell.cellStyle.bold = true;
+        cell.cellStyle.backColor = '#C4D79B';
+        cell.cellStyle.hAlign = xlsio.HAlignType.center;
+        cell.cellStyle.vAlign = xlsio.VAlignType.center;
+        cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+      }
+
+      for (int i = 0; i < allDates.length; i++) {
+        final cell = sheet.getRangeByIndex(headerRow, staticHeaders.length + i + 1);
+        cell.setText(dateLabels[allDates[i]] ?? allDates[i]);
+        cell.cellStyle.bold = true;
+        cell.cellStyle.backColor = '#B8CCE4';
+        cell.cellStyle.hAlign = xlsio.HAlignType.center;
+        cell.cellStyle.vAlign = xlsio.VAlignType.center;
+        cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+      }
+
+      final totalQtyCol = staticHeaders.length + allDates.length + 1;
+      final totalQtyCell = sheet.getRangeByIndex(headerRow, totalQtyCol);
+      totalQtyCell.setText("TOTAL TERPAKAI");
+      totalQtyCell.cellStyle.bold = true;
+      totalQtyCell.cellStyle.backColor = '#FCD5B4';
+      totalQtyCell.cellStyle.hAlign = xlsio.HAlignType.center;
+      totalQtyCell.cellStyle.vAlign = xlsio.VAlignType.center;
+      totalQtyCell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+
+      final totalCostCol = staticHeaders.length + allDates.length + 2;
+      final totalCostCell = sheet.getRangeByIndex(headerRow, totalCostCol);
+      totalCostCell.setText("TOTAL NOMINAL");
+      totalCostCell.cellStyle.bold = true;
+      totalCostCell.cellStyle.backColor = '#E6B8AF';
+      totalCostCell.cellStyle.hAlign = xlsio.HAlignType.center;
+      totalCostCell.cellStyle.vAlign = xlsio.VAlignType.center;
+      totalCostCell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+
+      int currentRow = headerRow + 1;
+      for (int i = 0; i < medicines.length; i++) {
+        final med = medicines[i];
+        final medName = med.name ?? '';
+        final dateMap = dailyMedicine[medName] ?? {};
+
+        sheet.getRangeByIndex(currentRow, 1).setNumber((i + 1).toDouble());
+        sheet.getRangeByIndex(currentRow, 2).setText(medName);
+        sheet.getRangeByIndex(currentRow, 3).setText(med.measure ?? '');
+
+        final priceCell = sheet.getRangeByIndex(currentRow, 4);
+        priceCell.setNumber((med.price ?? 0).toDouble());
+        priceCell.numberFormat = '#,##0';
+
+        int totalUsed = 0;
+        for (int d = 0; d < allDates.length; d++) {
+          final dateKey = allDates[d];
+          final qty = dateMap[dateKey] ?? 0;
+          totalUsed += qty;
+
+          final qtyCell =
+              sheet.getRangeByIndex(currentRow, staticHeaders.length + d + 1);
+          if (qty > 0) {
+            qtyCell.setNumber(qty.toDouble());
+          } else {
+            qtyCell.setText('');
+          }
+        }
+
+        final sumQtyCell = sheet.getRangeByIndex(currentRow, totalQtyCol);
+        sumQtyCell.setNumber(totalUsed.toDouble());
+        sumQtyCell.numberFormat = '#,##0';
+        sumQtyCell.cellStyle.bold = true;
+
+        final sumCostCell = sheet.getRangeByIndex(currentRow, totalCostCol);
+        sumCostCell.setNumber((totalUsed * (med.price ?? 0)).toDouble());
+        sumCostCell.numberFormat = '"Rp" #,##0';
+        sumCostCell.cellStyle.bold = true;
+
+        for (int col = 1; col <= totalColumns; col++) {
+          final cell = sheet.getRangeByIndex(currentRow, col);
+          cell.cellStyle.hAlign =
+              col == 2 ? xlsio.HAlignType.left : xlsio.HAlignType.center;
+          cell.cellStyle.vAlign = xlsio.VAlignType.center;
+          cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+        }
+
+        currentRow++;
+      }
+
+      final bytes = workbook.saveAsStream();
+      workbook.dispose();
+
+      if (isWeb) {
+        final Uint8List uint8list = Uint8List.fromList(bytes);
+        await FileSaver.instance.saveFile(
+          name: "laporan_pemakaian_obat",
+          bytes: uint8list,
+          fileExtension: "xlsx",
+          mimeType: MimeType.microsoftExcel,
+        );
+      } else {
+        Directory? dir = await getExternalStorageDirectory();
+        String newPath = "";
+        List<String> folders = dir!.path.split("/");
+        for (int i = 1; i < folders.length; i++) {
+          if (folders[i] == "Android") break;
+          newPath += "/${folders[i]}";
+        }
+        String downloadPath = "$newPath/Download";
+        await Directory(downloadPath).create(recursive: true);
+
+        String filePath = "$downloadPath/laporan_pemakaian_obat.xlsx";
+        File(filePath)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(bytes);
+        print("✅ File berhasil disimpan di: $filePath");
+      }
+    } catch (e) {
+      log("❌ ERROR EXPORT MEDICINE REPORT: $e");
+    }
+  }
+
   String getInitials(String? name) {
     if (name == null || name.trim().isEmpty) return '';
 

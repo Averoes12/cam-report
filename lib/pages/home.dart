@@ -1,6 +1,7 @@
 import 'package:camreport/pages/employee/index.dart';
 import 'package:camreport/pages/invoice/index.dart';
 import 'package:camreport/pages/medicine/index.dart';
+import 'package:camreport/pages/medicine/report.dart';
 import 'package:camreport/pages/therapy/index.dart';
 import 'package:camreport/pages/visit/index.dart';
 import 'package:camreport/theme/global_colors.dart';
@@ -16,6 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
+  bool isSidebarVisible = true;
 
   final List<_MenuEntry> _mainMenu = const [
     _MenuEntry('Dashboard', Icons.grid_view_rounded, 0),
@@ -23,6 +25,7 @@ class _HomePageState extends State<HomePage> {
     _MenuEntry('Berobat', Icons.healing_rounded, 1, isChild: true),
     _MenuEntry('Karyawan', Icons.group_add_rounded, 2),
     _MenuEntry('Obat', Icons.medication_rounded, 3),
+    _MenuEntry('Laporan Obat', Icons.table_chart_rounded, 6),
   ];
 
   final List<_MenuEntry> _otherMenu = const [
@@ -45,6 +48,8 @@ class _HomePageState extends State<HomePage> {
         return const InvoicePage();
       case 5:
         return const OCRPage();
+      case 6:
+        return const MedicineReportPage();
       default:
         return const SizedBox();
     }
@@ -79,6 +84,10 @@ class _HomePageState extends State<HomePage> {
               label: 'Obat',
             ),
             NavigationDestination(
+              icon: Icon(Icons.table_chart_rounded),
+              label: 'Laporan Obat',
+            ),
+            NavigationDestination(
               icon: Icon(Icons.receipt_long_rounded),
               label: 'Invoice',
             ),
@@ -92,64 +101,90 @@ class _HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          Container(
-            width: 340,
-            color: GlobalColors.surface,
-            padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
-            child: SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Camreport',
-                              style: Theme.of(context).textTheme.headlineMedium,
+          Row(
+            children: [
+              if (isSidebarVisible) ...[
+                Container(
+                  width: 340,
+                  color: GlobalColors.surface,
+                  padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+                  child: SafeArea(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Reporting obat dan kunjungan',
-                              style: Theme.of(context).textTheme.bodySmall,
+                            child: IntrinsicHeight(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Camreport',
+                                        style: Theme.of(context).textTheme.headlineMedium,
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.menu_open),
+                                        onPressed: () => setState(() => isSidebarVisible = false),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Reporting obat dan kunjungan',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                  const SizedBox(height: 28),
+                                  _menuSection(
+                                    context,
+                                    'Menu',
+                                    _mainMenu,
+                                    expanded: true,
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    child: Divider(height: 1),
+                                  ),
+                                  _menuSection(context, 'Other Menu', _otherMenu),
+                                  const Spacer(),
+                                  const SizedBox(height: 16),
+                                  _footerAction(context),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 28),
-                            _menuSection(
-                              context,
-                              'Menu',
-                              _mainMenu,
-                              expanded: true,
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Divider(height: 1),
-                            ),
-                            _menuSection(context, 'Other Menu', _otherMenu),
-                            const Spacer(),
-                            const SizedBox(height: 16),
-                            _footerAction(context),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ),
+                ),
+                Container(width: 1, color: GlobalColors.border),
+              ],
+              Expanded(
+                child: Container(
+                  color: GlobalColors.neutral,
+                  child: _buildContent(),
+                ),
+              ),
+            ],
+          ),
+          if (!isSidebarVisible)
+            Positioned(
+              top: 16,
+              left: 16,
+              child: SafeArea(
+                child: FloatingActionButton.small(
+                  onPressed: () => setState(() => isSidebarVisible = true),
+                  child: const Icon(Icons.menu),
+                ),
               ),
             ),
-          ),
-          Container(width: 1, color: GlobalColors.border),
-          Expanded(
-            child: Container(
-              color: GlobalColors.neutral,
-              child: _buildContent(),
-            ),
-          ),
         ],
       ),
     );

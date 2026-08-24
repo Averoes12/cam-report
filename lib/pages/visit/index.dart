@@ -22,6 +22,15 @@ class _VisitPageState extends State<VisitPage> {
   final DatabaseService db = DatabaseService();
   final TextEditingController searchController = TextEditingController();
   DateTimeRange? selectedRange;
+  String selectedStatus = 'Semua';
+
+  final List<String> statusFilters = const [
+    'Semua',
+    'Tetap',
+    'Kontrak',
+    'Nikita',
+    'BBC',
+  ];
 
   @override
   void dispose() {
@@ -42,35 +51,82 @@ class _VisitPageState extends State<VisitPage> {
   }
 
   List<TransactionVisit> _filterVisits(List<TransactionVisit> visits) {
-    final query = searchController.text.toLowerCase();
+    final query = searchController.text.toLowerCase().trim();
     final filtered = visits.where((visit) {
-      if (selectedRange == null) return true;
+      if (selectedRange != null) {
+        final visitDate = Utils.tryParseDate(visit.end);
+        if (visitDate == null) return false;
+        final start = DateTime(
+          selectedRange!.start.year,
+          selectedRange!.start.month,
+          selectedRange!.start.day,
+        );
+        final end = DateTime(
+          selectedRange!.end.year,
+          selectedRange!.end.month,
+          selectedRange!.end.day,
+          23,
+          59,
+          59,
+        );
 
-      final visitDate = Utils.tryParseDate(visit.end);
-      if (visitDate == null) return false;
-      final start = DateTime(
-        selectedRange!.start.year,
-        selectedRange!.start.month,
-        selectedRange!.start.day,
-      );
-      final end = DateTime(
-        selectedRange!.end.year,
-        selectedRange!.end.month,
-        selectedRange!.end.day,
-        23,
-        59,
-        59,
-      );
+        if (visitDate.isBefore(start) || visitDate.isAfter(end)) {
+          return false;
+        }
+      }
 
-      return !visitDate.isBefore(start) && !visitDate.isAfter(end);
+      if (selectedStatus != 'Semua') {
+        final status = (visit.employee.status ?? '').toLowerCase().trim();
+        final dept = (visit.employee.deptnm ?? '').toLowerCase().trim();
+        final name = (visit.employee.name ?? '').toLowerCase().trim();
+        final nip = (visit.employee.nip ?? '').toLowerCase().trim();
+
+        switch (selectedStatus) {
+          case 'Tetap':
+            if (!status.contains('tetap') &&
+                !status.contains('permanent') &&
+                !status.contains('permanen')) {
+              return false;
+            }
+            break;
+          case 'Kontrak':
+            if (!status.contains('kontrak') && !status.contains('contract')) {
+              return false;
+            }
+            break;
+          case 'Nikita':
+            if (!status.contains('nikita') &&
+                !dept.contains('nikita') &&
+                !name.contains('nikita') &&
+                !nip.contains('nikita')) {
+              return false;
+            }
+            break;
+          case 'BBC':
+            if (!status.contains('bbc') &&
+                !dept.contains('bbc') &&
+                !name.contains('bbc') &&
+                !nip.contains('bbc')) {
+              return false;
+            }
+            break;
+        }
+      }
+
+      return true;
     }).toList();
 
     if (query.isEmpty) return filtered;
 
     return filtered.where((visit) {
-      return (visit.employee.name ?? '').toLowerCase().contains(query) ||
-          (visit.employee.nip ?? '').toLowerCase().contains(query) ||
-          (visit.employee.deptnm ?? '').toLowerCase().contains(query);
+      final name = (visit.employee.name ?? '').toLowerCase();
+      final nip = (visit.employee.nip ?? '').toLowerCase();
+      final dept = (visit.employee.deptnm ?? '').toLowerCase();
+      final status = (visit.employee.status ?? '').toLowerCase();
+      return name.contains(query) ||
+          nip.contains(query) ||
+          dept.contains(query) ||
+          status.contains(query);
     }).toList();
   }
 
@@ -114,9 +170,23 @@ class _VisitPageState extends State<VisitPage> {
     }
   }
 
+  String? _deletingMessage;
+
   Future<void> _deleteAllVisits() async {
+    setState(() => _deletingMessage = 'Memuat data...');
     try {
-      await db.deleteAllVisitData();
+      final querySnapshot = await db.trxvisitCollection.get();
+      final visits = querySnapshot.docs
+          .map((doc) => doc.data())
+          .where((v) => v.category == 'visit')
+          .toList();
+
+      for (var i = 0; i < visits.length; i++) {
+        if (!mounted) return;
+        setState(() => _deletingMessage = 'Menghapus ${i + 1}/${visits.length}');
+        await db.deleteVisit(visits[i]);
+      }
+
       if (!mounted) return;
       SnackBarUtil.showSuccess(
         context,
@@ -125,6 +195,8 @@ class _VisitPageState extends State<VisitPage> {
     } catch (e) {
       if (!mounted) return;
       SnackBarUtil.showSnack(context, 'Gagal menghapus data kunjungan. $e');
+    } finally {
+      if (mounted) setState(() => _deletingMessage = null);
     }
   }
 
@@ -220,10 +292,12 @@ class _VisitPageState extends State<VisitPage> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 Expanded(
@@ -254,6 +328,53 @@ class _VisitPageState extends State<VisitPage> {
                   ),
                 ],
               ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: SizedBox(
+              height: 38,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: statusFilters.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final status = statusFilters[index];
+                  final isSelected = selectedStatus == status;
+                  return ChoiceChip(
+                    label: Text(status),
+                    selected: isSelected,
+                    showCheckmark: false,
+                    onSelected: (selected) {
+                      setState(() {
+                        selectedStatus = status;
+                      });
+                    },
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? Colors.white
+                          : GlobalColors.textPrimary,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                    backgroundColor: Colors.white,
+                    selectedColor: GlobalColors.primary,
+                    side: BorderSide(
+                      color: isSelected
+                          ? GlobalColors.primary
+                          : GlobalColors.border,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           Expanded(
@@ -309,18 +430,29 @@ class _VisitPageState extends State<VisitPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    '${visits.length} data siap ditinjau',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _rangeLabel,
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
+                                  Wrap(
+                                    spacing: 14,
+                                    runSpacing: 4,
+                                    children: [
+                                      Text(
+                                        '${visits.length} data siap ditinjau${selectedStatus != 'Semua' ? ' • Kategori: $selectedStatus' : ''}',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Total Nilai: Rp ${Utils.formatNumber(visits.fold(0, (sum, v) => sum + v.grandTotal))}',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                      Text(
+                                        _rangeLabel,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -365,6 +497,27 @@ class _VisitPageState extends State<VisitPage> {
             ),
           ),
         ],
+      ),
+      if (_deletingMessage != null)
+        Container(
+          color: Colors.black54,
+          child: Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(_deletingMessage!),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
       ),
     );
   }

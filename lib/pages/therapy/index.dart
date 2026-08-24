@@ -74,14 +74,30 @@ class _TherapyPageState extends State<TherapyPage> {
     }).toList();
   }
 
+  String? _deletingMessage;
+
   Future<void> _deleteAllTherapies() async {
+    setState(() => _deletingMessage = 'Memuat data...');
     try {
-      await db.deleteAllTherapyData();
+      final querySnapshot = await db.trxTherapyCollection.get();
+      final therapies = querySnapshot.docs.map((doc) => doc.data()).toList();
+
+      for (var i = 0; i < therapies.length; i++) {
+        if (!mounted) return;
+        setState(() => _deletingMessage = 'Menghapus ${i + 1}/${therapies.length}');
+        await db.deleteTherapy(therapies[i]);
+      }
+
       if (!mounted) return;
-      SnackBarUtil.showSuccess(context, 'Semua data berobat berhasil dihapus');
+      SnackBarUtil.showSuccess(
+        context,
+        'Semua data berobat berhasil dihapus',
+      );
     } catch (e) {
       if (!mounted) return;
       SnackBarUtil.showSnack(context, 'Gagal menghapus data berobat. $e');
+    } finally {
+      if (mounted) setState(() => _deletingMessage = null);
     }
   }
 
@@ -130,10 +146,12 @@ class _TherapyPageState extends State<TherapyPage> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 Expanded(
@@ -216,18 +234,29 @@ class _TherapyPageState extends State<TherapyPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    '${therapies.length} data siap ditinjau',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _rangeLabel,
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
+                                  Wrap(
+                                    spacing: 14,
+                                    runSpacing: 4,
+                                    children: [
+                                      Text(
+                                        '${therapies.length} data siap ditinjau',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Total Nilai: Rp ${Utils.formatNumber(therapies.fold(0, (sum, v) => sum + v.grandTotal))}',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                      Text(
+                                        _rangeLabel,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -274,6 +303,27 @@ class _TherapyPageState extends State<TherapyPage> {
             ),
           ),
         ],
+      ),
+      if (_deletingMessage != null)
+        Container(
+          color: Colors.black54,
+          child: Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(_deletingMessage!),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
       ),
     );
   }

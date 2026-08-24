@@ -11,6 +11,7 @@ import 'package:camreport/pages/therapy/index.dart';
 import 'package:camreport/pages/visit/index.dart';
 import 'package:camreport/pages/visit/steps/transaction_therapy.dart';
 import 'package:camreport/pages/visit/steps/transaction_visit.dart';
+import 'package:camreport/pages/medicine/report.dart';
 import 'package:camreport/pages/ocr/ocr_page.dart';
 import 'package:flutter/material.dart';
 import 'package:camreport/pages/employee/index.dart';
@@ -59,6 +60,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const InvoicePage());
       case ocrView:
         return MaterialPageRoute(builder: (_) => const OCRPage());
+      case medicineReportView:
+        return MaterialPageRoute(builder: (_) => const MedicineReportPage());
       default:
         return MaterialPageRoute(builder: (_) => const HomePage());
     }
