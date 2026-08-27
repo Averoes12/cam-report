@@ -700,155 +700,458 @@ class Utils {
     }
   }
 
+  static String getExcelColumnName(int colIndex) {
+    int temp = colIndex;
+    String letter = '';
+    while (temp > 0) {
+      int mod = (temp - 1) % 26;
+      letter = String.fromCharCode(65 + mod) + letter;
+      temp = (temp - 1) ~/ 26;
+    }
+    return letter;
+  }
+
+  static String formatIndonesianMonthRange(DateTime start, DateTime end) {
+    const months = [
+      '',
+      'JANUARI',
+      'FEBRUARI',
+      'MARET',
+      'APRIL',
+      'MEI',
+      'JUNI',
+      'JULI',
+      'AGUSTUS',
+      'SEPTEMBER',
+      'OKTOBER',
+      'NOVEMBER',
+      'DESEMBER',
+    ];
+    if (start.year == end.year) {
+      if (start.month == end.month) {
+        return '${start.day} - ${end.day} ${months[start.month]} ${start.year}';
+      } else {
+        return '${start.day} ${months[start.month]} - ${end.day} ${months[end.month]} ${start.year}';
+      }
+    } else {
+      return '${start.day} ${months[start.month]} ${start.year} - ${end.day} ${months[end.month]} ${end.year}';
+    }
+  }
+
   static Future<void> exportMedicineReport({
     required List<MedicineModel> medicines,
     required Map<String, Map<String, int>> dailyMedicine,
     required List<String> allDates,
     required Map<String, String> dateLabels,
     String periodLabel = '',
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     try {
       final workbook = xlsio.Workbook();
       final sheet = workbook.worksheets[0];
-      sheet.name = 'LAPORAN PEMAKAIAN OBAT';
+      sheet.name = 'Sheet1';
 
-      final totalColumns = 4 + allDates.length + 2;
+      final int dateCount = allDates.length;
+      final int firstDateCol = 9;
+      final int lastDateCol =
+          dateCount > 0 ? (firstDateCol + dateCount - 1) : firstDateCol;
+      final int totalUsedCol = dateCount > 0 ? (lastDateCol + 1) : 9;
+      final int totalCostCol = totalUsedCol + 1;
+      final int lastStockCol = totalCostCol + 1;
+      final int edCol = lastStockCol + 1;
+      final int totalColumns = edCol;
 
-      final title = sheet.getRangeByIndex(1, 1, 1, totalColumns);
-      title.merge();
-      title.setText('REKAPITULASI PEMAKAIAN OBAT HARIAN');
-      title.cellStyle.bold = true;
-      title.cellStyle.fontSize = 14;
-      title.cellStyle.hAlign = xlsio.HAlignType.center;
-
+      // Row 1 Title (B1)
+      String titleText = 'STOK OBAT IHC MEAINA';
       if (periodLabel.isNotEmpty) {
-        final subTitle = sheet.getRangeByIndex(2, 1, 2, totalColumns);
-        subTitle.merge();
-        subTitle.setText('Periode: $periodLabel');
-        subTitle.cellStyle.bold = true;
-        subTitle.cellStyle.fontSize = 11;
-        subTitle.cellStyle.hAlign = xlsio.HAlignType.center;
+        titleText = 'STOK OBAT IHC MEAINA ${periodLabel.toUpperCase()}';
+      } else if (startDate != null && endDate != null) {
+        titleText =
+            'STOK OBAT IHC MEAINA ${formatIndonesianMonthRange(startDate, endDate)}';
       }
 
-      int headerRow = periodLabel.isNotEmpty ? 4 : 3;
+      final titleCell = sheet.getRangeByIndex(1, 2);
+      titleCell.setText(titleText);
+      titleCell.cellStyle.fontName = 'Calibri';
+      titleCell.cellStyle.fontSize = 11;
+      titleCell.cellStyle.bold = true;
+      titleCell.cellStyle.hAlign = xlsio.HAlignType.center;
+      titleCell.cellStyle.vAlign = xlsio.VAlignType.center;
 
-      final staticHeaders = ["NO", "NAMA OBAT", "SATUAN", "HARGA SATUAN"];
-      for (int i = 0; i < staticHeaders.length; i++) {
-        final cell = sheet.getRangeByIndex(headerRow, i + 1);
-        cell.setText(staticHeaders[i]);
+      // Header Row 2 & 3
+      const headerColor = '#E8346C';
+
+      void styleHeaderCell(
+        xlsio.Range cell, {
+        String? fontName,
+        double fontSize = 11,
+      }) {
+        cell.cellStyle.backColor = headerColor;
         cell.cellStyle.bold = true;
-        cell.cellStyle.backColor = '#C4D79B';
+        cell.cellStyle.fontSize = fontSize;
+        if (fontName != null) cell.cellStyle.fontName = fontName;
         cell.cellStyle.hAlign = xlsio.HAlignType.center;
         cell.cellStyle.vAlign = xlsio.VAlignType.center;
         cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
       }
 
-      for (int i = 0; i < allDates.length; i++) {
-        final cell = sheet.getRangeByIndex(headerRow, staticHeaders.length + i + 1);
-        cell.setText(dateLabels[allDates[i]] ?? allDates[i]);
-        cell.cellStyle.bold = true;
-        cell.cellStyle.backColor = '#B8CCE4';
-        cell.cellStyle.hAlign = xlsio.HAlignType.center;
-        cell.cellStyle.vAlign = xlsio.VAlignType.center;
-        cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+      // Static headers (Cols A-H)
+      final staticHeaderTitles = [
+        "NO",
+        "NAMA OBAT",
+        "SATUAN",
+        "HARGA JUAL",
+        "STOK AWAL",
+        "OBAT DATANG",
+        "RETURN KE CAM",
+        "TOTAL OBAT",
+      ];
+
+      for (int i = 0; i < staticHeaderTitles.length; i++) {
+        final range = sheet.getRangeByIndex(2, i + 1, 3, i + 1);
+        range.merge();
+        range.setText(staticHeaderTitles[i]);
+        styleHeaderCell(
+          range,
+          fontName: i < 4 ? 'Times New Roman' : 'Calibri',
+        );
       }
 
-      final totalQtyCol = staticHeaders.length + allDates.length + 1;
-      final totalQtyCell = sheet.getRangeByIndex(headerRow, totalQtyCol);
-      totalQtyCell.setText("TOTAL TERPAKAI");
-      totalQtyCell.cellStyle.bold = true;
-      totalQtyCell.cellStyle.backColor = '#FCD5B4';
-      totalQtyCell.cellStyle.hAlign = xlsio.HAlignType.center;
-      totalQtyCell.cellStyle.vAlign = xlsio.VAlignType.center;
-      totalQtyCell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
-
-      final totalCostCol = staticHeaders.length + allDates.length + 2;
-      final totalCostCell = sheet.getRangeByIndex(headerRow, totalCostCol);
-      totalCostCell.setText("TOTAL NOMINAL");
-      totalCostCell.cellStyle.bold = true;
-      totalCostCell.cellStyle.backColor = '#E6B8AF';
-      totalCostCell.cellStyle.hAlign = xlsio.HAlignType.center;
-      totalCostCell.cellStyle.vAlign = xlsio.VAlignType.center;
-      totalCostCell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
-
-      int currentRow = headerRow + 1;
-      for (int i = 0; i < medicines.length; i++) {
-        final med = medicines[i];
-        final medName = med.name ?? '';
-        final dateMap = dailyMedicine[medName] ?? {};
-
-        sheet.getRangeByIndex(currentRow, 1).setNumber((i + 1).toDouble());
-        sheet.getRangeByIndex(currentRow, 2).setText(medName);
-        sheet.getRangeByIndex(currentRow, 3).setText(med.measure ?? '');
-
-        final priceCell = sheet.getRangeByIndex(currentRow, 4);
-        priceCell.setNumber((med.price ?? 0).toDouble());
-        priceCell.numberFormat = '#,##0';
-
-        int totalUsed = 0;
-        for (int d = 0; d < allDates.length; d++) {
-          final dateKey = allDates[d];
-          final qty = dateMap[dateKey] ?? 0;
-          totalUsed += qty;
-
-          final qtyCell =
-              sheet.getRangeByIndex(currentRow, staticHeaders.length + d + 1);
-          if (qty > 0) {
-            qtyCell.setNumber(qty.toDouble());
-          } else {
-            qtyCell.setText('');
-          }
+      // Date columns header
+      if (dateCount > 0) {
+        final dateHeaderRange = sheet.getRangeByIndex(
+          2,
+          firstDateCol,
+          2,
+          lastDateCol,
+        );
+        if (firstDateCol != lastDateCol) {
+          dateHeaderRange.merge();
         }
+        dateHeaderRange.setText("TANGGAL KELUAR OBAT HARIAN");
+        styleHeaderCell(dateHeaderRange, fontName: 'Calibri');
 
-        final sumQtyCell = sheet.getRangeByIndex(currentRow, totalQtyCol);
-        sumQtyCell.setNumber(totalUsed.toDouble());
-        sumQtyCell.numberFormat = '#,##0';
-        sumQtyCell.cellStyle.bold = true;
+        // Sub-headers for dates in Row 3
+        for (int d = 0; d < dateCount; d++) {
+          final dateKey = allDates[d];
+          final parsed =
+              DateTime.tryParse(dateKey) ?? Utils.tryParseDate(dateKey);
+          final dayLabel =
+              parsed != null
+                  ? parsed.day.toString()
+                  : (dateLabels[dateKey] ?? dateKey);
 
-        final sumCostCell = sheet.getRangeByIndex(currentRow, totalCostCol);
-        sumCostCell.setNumber((totalUsed * (med.price ?? 0)).toDouble());
-        sumCostCell.numberFormat = '"Rp" #,##0';
-        sumCostCell.cellStyle.bold = true;
+          final cell = sheet.getRangeByIndex(3, firstDateCol + d);
+          cell.setText(dayLabel);
+          styleHeaderCell(cell, fontName: 'Calibri');
+        }
+      }
 
-        for (int col = 1; col <= totalColumns; col++) {
-          final cell = sheet.getRangeByIndex(currentRow, col);
-          cell.cellStyle.hAlign =
-              col == 2 ? xlsio.HAlignType.left : xlsio.HAlignType.center;
-          cell.cellStyle.vAlign = xlsio.VAlignType.center;
-          cell.cellStyle.borders.all.lineStyle = xlsio.LineStyle.thin;
+      // Trailing headers
+      final trailingHeaders = [
+        "TOTAL OBAT KELUAR",
+        "TOTAL HARGA RESEP",
+        "STOK AKHIR",
+        "ED OBAT",
+      ];
+
+      for (int i = 0; i < trailingHeaders.length; i++) {
+        final col = totalUsedCol + i;
+        final range = sheet.getRangeByIndex(2, col, 3, col);
+        range.merge();
+        range.setText(trailingHeaders[i]);
+        styleHeaderCell(range, fontName: 'Calibri');
+      }
+
+      // Separate into Non-BPJS and BPJS
+      final nonBpjsMedicines =
+          medicines
+              .where((m) => !(m.name ?? '').toUpperCase().contains('BPJS'))
+              .toList();
+      final bpjsMedicines =
+          medicines
+              .where((m) => (m.name ?? '').toUpperCase().contains('BPJS'))
+              .toList();
+
+      final firstDateLetter = getExcelColumnName(firstDateCol);
+      final lastDateLetter = getExcelColumnName(lastDateCol);
+      final totalUsedLetter = getExcelColumnName(totalUsedCol);
+      final totalCostLetter = getExcelColumnName(totalCostCol);
+
+      int currentRow = 4;
+      final int firstDataRow = currentRow;
+
+      void writeMedicineRows(List<MedicineModel> list) {
+        for (int i = 0; i < list.length; i++) {
+          final med = list[i];
+          final medName = med.name ?? '';
+          final dateMap = dailyMedicine[medName] ?? {};
+
+          // Col 1: NO (#FFC1C1)
+          final noCell = sheet.getRangeByIndex(currentRow, 1);
+          noCell.setNumber((i + 1).toDouble());
+          noCell.cellStyle.backColor = '#FFC1C1';
+          noCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          noCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col 2: NAMA OBAT (#FFC1C1)
+          final nameCell = sheet.getRangeByIndex(currentRow, 2);
+          nameCell.setText(medName);
+          nameCell.cellStyle.fontName = 'Times New Roman';
+          nameCell.cellStyle.backColor = '#FFC1C1';
+          nameCell.cellStyle.hAlign = xlsio.HAlignType.left;
+          nameCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col 3: SATUAN (#FFC1C1)
+          final unitCell = sheet.getRangeByIndex(currentRow, 3);
+          unitCell.setText(med.measure?.toString() ?? '');
+          unitCell.cellStyle.fontName = 'Times New Roman';
+          unitCell.cellStyle.backColor = '#FFC1C1';
+          unitCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          unitCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col 4: HARGA JUAL (#FFC1C1)
+          final priceCell = sheet.getRangeByIndex(currentRow, 4);
+          final price = (med.price ?? 0).toDouble();
+          priceCell.setNumber(price);
+          priceCell.numberFormat = '#,##0';
+          priceCell.cellStyle.fontName = 'Times New Roman';
+          priceCell.cellStyle.backColor = '#FFC1C1';
+          priceCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          priceCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col 5: STOK AWAL (#EB3D73)
+          final firstStockCell = sheet.getRangeByIndex(currentRow, 5);
+          final firstStock = (med.firstStock ?? 0).toDouble();
+          firstStockCell.setNumber(firstStock);
+          firstStockCell.cellStyle.backColor = '#EB3D73';
+          firstStockCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          firstStockCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col 6: OBAT DATANG (White / No fill)
+          final arrivedCell = sheet.getRangeByIndex(currentRow, 6);
+          if (med.arrivedStock != null && med.arrivedStock! > 0) {
+            arrivedCell.setNumber(med.arrivedStock!.toDouble());
+          }
+          arrivedCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          arrivedCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col 7: RETURN KE CAM (#E8346C)
+          final returnCell = sheet.getRangeByIndex(currentRow, 7);
+          if (med.returnedStock != null && med.returnedStock! > 0) {
+            returnCell.setNumber(med.returnedStock!.toDouble());
+          }
+          returnCell.cellStyle.backColor = '#E8346C';
+          returnCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          returnCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col 8: TOTAL OBAT (#E8346C)
+          final totalObatCell = sheet.getRangeByIndex(currentRow, 8);
+          totalObatCell.setFormula(
+            '=SUM(E$currentRow+F$currentRow-G$currentRow)',
+          );
+          totalObatCell.cellStyle.backColor = '#E8346C';
+          totalObatCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          totalObatCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Daily date columns
+          int totalUsed = 0;
+          for (int d = 0; d < dateCount; d++) {
+            final dateKey = allDates[d];
+            final qty = dateMap[dateKey] ?? 0;
+            totalUsed += qty;
+
+            final parsed =
+                DateTime.tryParse(dateKey) ?? Utils.tryParseDate(dateKey);
+            final isWeekend =
+                parsed != null &&
+                (parsed.weekday == DateTime.saturday ||
+                    parsed.weekday == DateTime.sunday);
+
+            final dateCell = sheet.getRangeByIndex(currentRow, firstDateCol + d);
+            if (qty > 0) {
+              dateCell.setNumber(qty.toDouble());
+            }
+            dateCell.cellStyle.backColor = isWeekend ? '#C00000' : '#F7E3AB';
+            dateCell.cellStyle.hAlign = xlsio.HAlignType.center;
+            dateCell.cellStyle.vAlign = xlsio.VAlignType.center;
+          }
+
+          // Col TOTAL OBAT KELUAR (#E8346C)
+          final usedCell = sheet.getRangeByIndex(currentRow, totalUsedCol);
+          if (dateCount > 0) {
+            usedCell.setFormula(
+              '=SUM($firstDateLetter$currentRow:$lastDateLetter$currentRow)',
+            );
+          } else {
+            usedCell.setNumber(totalUsed.toDouble());
+          }
+          usedCell.cellStyle.backColor = '#E8346C';
+          usedCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          usedCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col TOTAL HARGA RESEP (#F6A0BB)
+          final costCell = sheet.getRangeByIndex(currentRow, totalCostCol);
+          costCell.setFormula('=SUM(D$currentRow*$totalUsedLetter$currentRow)');
+          costCell.numberFormat = '#,##0';
+          costCell.cellStyle.backColor = '#F6A0BB';
+          costCell.cellStyle.hAlign = xlsio.HAlignType.right;
+          costCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col STOK AKHIR (#FFC1C1)
+          final stockAkhirCell = sheet.getRangeByIndex(currentRow, lastStockCol);
+          stockAkhirCell.setFormula(
+            '=SUM(H$currentRow-$totalUsedLetter$currentRow)',
+          );
+          stockAkhirCell.numberFormat = '#,##0';
+          stockAkhirCell.cellStyle.backColor = '#FFC1C1';
+          stockAkhirCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          stockAkhirCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Col ED OBAT (No fill)
+          final edCell = sheet.getRangeByIndex(currentRow, edCol);
+          edCell.setText(med.expDt?.toString() ?? '');
+          edCell.cellStyle.hAlign = xlsio.HAlignType.center;
+          edCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+          // Thin border on all columns for this row
+          for (int c = 1; c <= totalColumns; c++) {
+            sheet.getRangeByIndex(currentRow, c).cellStyle.borders.all.lineStyle =
+                xlsio.LineStyle.thin;
+          }
+
+          currentRow++;
+        }
+      }
+
+      // Write Non-BPJS
+      writeMedicineRows(nonBpjsMedicines);
+
+      // Write BPJS Section if any
+      if (bpjsMedicines.isNotEmpty) {
+        // Section Header Row
+        final bpjsHeaderRange = sheet.getRangeByIndex(
+          currentRow,
+          1,
+          currentRow,
+          4,
+        );
+        bpjsHeaderRange.merge();
+        bpjsHeaderRange.setText('DAFTAR DAN HARGA OBAT BPJS SESUAI SISTEM');
+        bpjsHeaderRange.cellStyle.bold = true;
+        bpjsHeaderRange.cellStyle.fontSize = 14;
+        bpjsHeaderRange.cellStyle.fontName = 'Tahoma';
+        bpjsHeaderRange.cellStyle.hAlign = xlsio.HAlignType.center;
+        bpjsHeaderRange.cellStyle.vAlign = xlsio.VAlignType.center;
+
+        for (int c = 1; c <= totalColumns; c++) {
+          sheet.getRangeByIndex(currentRow, c).cellStyle.borders.all.lineStyle =
+              xlsio.LineStyle.thin;
         }
 
         currentRow++;
+
+        // Write BPJS Rows
+        writeMedicineRows(bpjsMedicines);
+      }
+
+      final lastDataRow = currentRow - 1;
+
+      // Bottom Summary Rows
+      if (lastDataRow >= firstDataRow) {
+        // Row 1: GRAND TOTAL
+        final grandTotalRow = currentRow;
+        final mergeStartCol = (totalUsedCol - 8).clamp(1, totalUsedCol);
+        final grandTotalLabelRange = sheet.getRangeByIndex(
+          grandTotalRow,
+          mergeStartCol,
+          grandTotalRow,
+          totalUsedCol,
+        );
+        if (mergeStartCol != totalUsedCol) {
+          grandTotalLabelRange.merge();
+        }
+        grandTotalLabelRange.setText('GRAND TOTAL');
+        grandTotalLabelRange.cellStyle.backColor = '#E8346C';
+        grandTotalLabelRange.cellStyle.bold = true;
+        grandTotalLabelRange.cellStyle.fontName = 'Cambria';
+        grandTotalLabelRange.cellStyle.fontSize = 12;
+        grandTotalLabelRange.cellStyle.hAlign = xlsio.HAlignType.center;
+        grandTotalLabelRange.cellStyle.vAlign = xlsio.VAlignType.center;
+
+        final grandTotalCostCell = sheet.getRangeByIndex(
+          grandTotalRow,
+          totalCostCol,
+        );
+        grandTotalCostCell.setFormula(
+          '=SUM($totalCostLetter$firstDataRow:$totalCostLetter$lastDataRow)',
+        );
+        grandTotalCostCell.numberFormat = '#,##0';
+        grandTotalCostCell.cellStyle.backColor = '#F7E3AB';
+        grandTotalCostCell.cellStyle.hAlign = xlsio.HAlignType.right;
+        grandTotalCostCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+        for (int c = 1; c <= totalColumns; c++) {
+          sheet.getRangeByIndex(grandTotalRow, c).cellStyle.borders.all.lineStyle =
+              xlsio.LineStyle.thin;
+        }
+
+        currentRow++;
+
+        // Row 2: PO ALKES
+        final poAlkesRow = currentRow;
+        final poAlkesCell = sheet.getRangeByIndex(poAlkesRow, totalUsedCol);
+        poAlkesCell.setText('PO ALKES');
+        poAlkesCell.cellStyle.hAlign = xlsio.HAlignType.center;
+        poAlkesCell.cellStyle.vAlign = xlsio.VAlignType.center;
+        final poAlkesCostCell = sheet.getRangeByIndex(poAlkesRow, totalCostCol);
+        poAlkesCostCell.setNumber(0);
+        poAlkesCostCell.numberFormat = '#,##0';
+        poAlkesCostCell.cellStyle.hAlign = xlsio.HAlignType.right;
+
+        currentRow++;
+
+        // Row 3: BPJS
+        final bpjsRow = currentRow;
+        final bpjsCell = sheet.getRangeByIndex(bpjsRow, totalUsedCol);
+        bpjsCell.setText('BPJS');
+        bpjsCell.cellStyle.hAlign = xlsio.HAlignType.center;
+        bpjsCell.cellStyle.vAlign = xlsio.VAlignType.center;
+        final bpjsCostCell = sheet.getRangeByIndex(bpjsRow, totalCostCol);
+        bpjsCostCell.setNumber(0);
+        bpjsCostCell.numberFormat = '#,##0';
+        bpjsCostCell.cellStyle.hAlign = xlsio.HAlignType.right;
+
+        currentRow++;
+
+        // Row 4: TOTAL SESUAI INVOICE
+        final invoiceRow = currentRow;
+        final invoiceCell = sheet.getRangeByIndex(invoiceRow, totalUsedCol);
+        invoiceCell.setText('TOTAL SESUAI INVOICE');
+        invoiceCell.cellStyle.bold = true;
+        invoiceCell.cellStyle.hAlign = xlsio.HAlignType.center;
+        invoiceCell.cellStyle.vAlign = xlsio.VAlignType.center;
+
+        final invoiceCostCell = sheet.getRangeByIndex(invoiceRow, totalCostCol);
+        invoiceCostCell.setFormula(
+          '=SUM($totalCostLetter$grandTotalRow+$totalCostLetter$poAlkesRow-$totalCostLetter$bpjsRow)',
+        );
+        invoiceCostCell.numberFormat = '#,##0';
+        invoiceCostCell.cellStyle.bold = true;
+        invoiceCostCell.cellStyle.hAlign = xlsio.HAlignType.right;
+        invoiceCostCell.cellStyle.vAlign = xlsio.VAlignType.center;
       }
 
       final bytes = workbook.saveAsStream();
       workbook.dispose();
 
-      if (isWeb) {
-        final Uint8List uint8list = Uint8List.fromList(bytes);
-        await FileSaver.instance.saveFile(
-          name: "laporan_pemakaian_obat",
-          bytes: uint8list,
-          fileExtension: "xlsx",
-          mimeType: MimeType.microsoftExcel,
-        );
-      } else {
-        Directory? dir = await getExternalStorageDirectory();
-        String newPath = "";
-        List<String> folders = dir!.path.split("/");
-        for (int i = 1; i < folders.length; i++) {
-          if (folders[i] == "Android") break;
-          newPath += "/${folders[i]}";
-        }
-        String downloadPath = "$newPath/Download";
-        await Directory(downloadPath).create(recursive: true);
-
-        String filePath = "$downloadPath/laporan_pemakaian_obat.xlsx";
-        File(filePath)
-          ..createSync(recursive: true)
-          ..writeAsBytesSync(bytes);
-        print("✅ File berhasil disimpan di: $filePath");
-      }
+      await FileSaver.instance.saveFile(
+        name: "Laporan_Obat",
+        bytes: Uint8List.fromList(bytes),
+        fileExtension: "xlsx",
+        mimeType: MimeType.microsoftExcel,
+      );
     } catch (e) {
       log("❌ ERROR EXPORT MEDICINE REPORT: $e");
     }

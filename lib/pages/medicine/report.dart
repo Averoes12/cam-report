@@ -95,7 +95,7 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
             onPressed: _loadData,
           ),
           IconButton(
-            tooltip: isTableView ? 'Tampilan Kartu' : 'Tampilan Tabel',
+            tooltip: isTableView ? 'Tampilan Tabel' : 'Tampilan Kartu',
             icon: Icon(
               isTableView
                   ? Icons.view_agenda_outlined
@@ -191,9 +191,64 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
       }
     }
 
-    // Sorted dates descending (most recent first)
-    final sortedDateKeys =
-        dateKeySet.toList()..sort((a, b) => b.compareTo(a));
+    // Build all consecutive dates including weekends for the period
+    final List<String> sortedDateKeys = [];
+    if (selectedRange != null) {
+      DateTime cur = DateTime(
+        selectedRange!.start.year,
+        selectedRange!.start.month,
+        selectedRange!.start.day,
+      );
+      final end = DateTime(
+        selectedRange!.end.year,
+        selectedRange!.end.month,
+        selectedRange!.end.day,
+      );
+      while (!cur.isAfter(end)) {
+        final dateKey = DateFormat('yyyy-MM-dd').format(cur);
+        final dateLabel = DateFormat('dd MMM yy').format(cur);
+        sortedDateKeys.add(dateKey);
+        dateDisplayLabels[dateKey] = dateLabel;
+        cur = cur.add(const Duration(days: 1));
+      }
+    } else {
+      DateTime? minDate;
+      DateTime? maxDate;
+      for (final visit in filteredVisits) {
+        final parsedDate = Utils.tryParseDate(visit.end);
+        if (parsedDate != null) {
+          if (minDate == null || parsedDate.isBefore(minDate)) {
+            minDate = parsedDate;
+          }
+          if (maxDate == null || parsedDate.isAfter(maxDate)) {
+            maxDate = parsedDate;
+          }
+        }
+      }
+
+      if (minDate != null && maxDate != null) {
+        DateTime cur = DateTime(minDate.year, minDate.month, minDate.day);
+        final end = DateTime(maxDate.year, maxDate.month, maxDate.day);
+        while (!cur.isAfter(end)) {
+          final dateKey = DateFormat('yyyy-MM-dd').format(cur);
+          final dateLabel = DateFormat('dd MMM yy').format(cur);
+          sortedDateKeys.add(dateKey);
+          dateDisplayLabels[dateKey] = dateLabel;
+          cur = cur.add(const Duration(days: 1));
+        }
+      } else {
+        final now = DateTime.now();
+        DateTime cur = DateTime(now.year, now.month - 1, 26);
+        final end = DateTime(now.year, now.month, 25);
+        while (!cur.isAfter(end)) {
+          final dateKey = DateFormat('yyyy-MM-dd').format(cur);
+          final dateLabel = DateFormat('dd MMM yy').format(cur);
+          sortedDateKeys.add(dateKey);
+          dateDisplayLabels[dateKey] = dateLabel;
+          cur = cur.add(const Duration(days: 1));
+        }
+      }
+    }
 
     // 3. Search and filter medicines
     final query = searchController.text.toLowerCase().trim();
@@ -359,12 +414,40 @@ class _MedicineReportPageState extends State<MedicineReportPage> {
                   const SizedBox(width: 8),
                   InkWell(
                     onTap: () {
+                      List<String> exportDates = [];
+                      if (selectedRange != null) {
+                        DateTime cur = DateTime(
+                          selectedRange!.start.year,
+                          selectedRange!.start.month,
+                          selectedRange!.start.day,
+                        );
+                        final endDate = DateTime(
+                          selectedRange!.end.year,
+                          selectedRange!.end.month,
+                          selectedRange!.end.day,
+                        );
+                        while (!cur.isAfter(endDate)) {
+                          exportDates.add(DateFormat('yyyy-MM-dd').format(cur));
+                          cur = cur.add(const Duration(days: 1));
+                        }
+                      } else {
+                        exportDates = sortedDateKeys;
+                      }
+
                       Utils.exportMedicineReport(
                         medicines: displayMedicines,
                         dailyMedicine: dailyMedicine,
-                        allDates: sortedDateKeys,
+                        allDates: exportDates,
                         dateLabels: dateDisplayLabels,
-                        periodLabel: _rangeLabel,
+                        periodLabel:
+                            selectedRange != null
+                                ? Utils.formatIndonesianMonthRange(
+                                  selectedRange!.start,
+                                  selectedRange!.end,
+                                )
+                                : _rangeLabel,
+                        startDate: selectedRange?.start,
+                        endDate: selectedRange?.end,
                       );
                     },
                     borderRadius: BorderRadius.circular(12),

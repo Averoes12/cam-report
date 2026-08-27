@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
     _MenuEntry('Berobat', Icons.healing_rounded, 1, isChild: true),
     _MenuEntry('Karyawan', Icons.group_add_rounded, 2),
     _MenuEntry('Obat', Icons.medication_rounded, 3),
-    _MenuEntry('Laporan Obat', Icons.table_chart_rounded, 6),
+    _MenuEntry('Laporan Obat', Icons.bar_chart_rounded, 6),
   ];
 
   final List<_MenuEntry> _otherMenu = const [
@@ -84,7 +84,7 @@ class _HomePageState extends State<HomePage> {
               label: 'Obat',
             ),
             NavigationDestination(
-              icon: Icon(Icons.table_chart_rounded),
+              icon: Icon(Icons.bar_chart_rounded),
               label: 'Laporan Obat',
             ),
             NavigationDestination(
