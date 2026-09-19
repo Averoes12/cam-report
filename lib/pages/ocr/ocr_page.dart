@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_ai/firebase_ai.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
+import 'package:camreport/services/nine_router_service.dart';
 
 class OCRPage extends StatefulWidget {
   const OCRPage({super.key});
@@ -30,7 +29,9 @@ class _OCRPageState extends State<OCRPage> {
         );
         if (result != null && result.files.single.bytes != null) {
           setState(() {
-            _image = File('dummy'); // Dummy file to satisfy null check, we use bytes for web
+            _image = File(
+              'dummy',
+            ); // Dummy file to satisfy null check, we use bytes for web
             _extractedText = '';
           });
           _processImageWeb(result.files.single.bytes!);
@@ -43,10 +44,10 @@ class _OCRPageState extends State<OCRPage> {
             _extractedText = ''; // Clear previous text
           });
           if (kIsWeb) {
-             final bytes = await pickedFile.readAsBytes();
-             _processImageWeb(bytes);
+            final bytes = await pickedFile.readAsBytes();
+            _processImageWeb(bytes);
           } else {
-             _processImage();
+            _processImage();
           }
         }
       }
@@ -61,19 +62,12 @@ class _OCRPageState extends State<OCRPage> {
     });
 
     try {
-      final model = FirebaseAI.googleAI().generativeModel(
-        model: 'gemini-3.1-flash-lite',
+      final text = await NineRouterService.instance.extractTextFromImage(
+        imageBytes: imageBytes,
       );
 
-      final prompt = TextPart("Extract the handwriting text from this image. Return only the extracted text, no other comments.");
-      final imagePart = InlineDataPart('image/jpeg', imageBytes);
-
-      final response = await model.generateContent([
-        Content.multi([prompt, imagePart])
-      ]);
-
       setState(() {
-        _extractedText = response.text ?? 'No text recognized.';
+        _extractedText = text.isNotEmpty ? text : 'No text recognized.';
       });
     } catch (e) {
       _showError('Error during OCR: $e');
@@ -92,20 +86,13 @@ class _OCRPageState extends State<OCRPage> {
     });
 
     try {
-      final model = FirebaseAI.googleAI().generativeModel(
-        model: 'gemini-3.1-flash-lite',
+      final imageBytes = await _image!.readAsBytes();
+      final text = await NineRouterService.instance.extractTextFromImage(
+        imageBytes: imageBytes,
       );
 
-      final imageBytes = await _image!.readAsBytes();
-      final prompt = TextPart("Extract the handwriting text from this image. Return only the extracted text, no other comments.");
-      final imagePart = InlineDataPart('image/jpeg', imageBytes);
-
-      final response = await model.generateContent([
-        Content.multi([prompt, imagePart])
-      ]);
-
       setState(() {
-        _extractedText = response.text ?? 'No text recognized.';
+        _extractedText = text.isNotEmpty ? text : 'No text recognized.';
       });
     } catch (e) {
       _showError('Error during OCR: $e');
@@ -117,17 +104,15 @@ class _OCRPageState extends State<OCRPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Handwriting OCR'),
-      ),
+      appBar: AppBar(title: const Text('Handwriting OCR')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -135,11 +120,13 @@ class _OCRPageState extends State<OCRPage> {
           children: [
             if (_image != null) ...[
               if (kIsWeb && _image?.path == 'dummy')
-                 const Text('Image selected (preview unavailable on web file picker)'),
+                const Text(
+                  'Image selected (preview unavailable on web file picker)',
+                ),
               if (kIsWeb && _image?.path != 'dummy')
-                 Image.network(_image!.path, height: 300, fit: BoxFit.contain),
+                Image.network(_image!.path, height: 300, fit: BoxFit.contain),
               if (!kIsWeb)
-                 Image.file(_image!, height: 300, fit: BoxFit.contain),
+                Image.file(_image!, height: 300, fit: BoxFit.contain),
               const SizedBox(height: 16),
             ],
             Row(

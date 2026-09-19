@@ -256,12 +256,20 @@ class _AddTherapyPageState extends State<AddTherapyPage> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => OCRBottomSheet(
         promptContext:
-            "Extract handwriting text from this image. Return ONLY a valid JSON object with: 'employee_identifier' (string, can be name OR NIP/ID of person) and 'medicines' (list of strings, medicine names). No markdown, no prefixes.",
+            "Extract handwriting text from this medical receipt/prescription image. Return ONLY a valid JSON object without markdown or code fences. Format: {\"employee_identifier\": \"string (name or NIP of patient)\", \"medicines\": [{\"name\": \"string (clean medicine name without prices/numbers)\", \"quantity\": 1}]}",
       ),
     );
     if (result != null && result.text.isNotEmpty) {
       _processOcrJson(result.text);
     }
+  }
+
+  String _normalizeText(String text) {
+    return text
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
   void _processOcrJson(String jsonString) {
@@ -270,16 +278,35 @@ class _AddTherapyPageState extends State<AddTherapyPage> {
           .replaceAll('```json', '')
           .replaceAll('```', '')
           .trim();
+      final startIndex = cleanJson.indexOf('{');
+      final endIndex = cleanJson.lastIndexOf('}');
+      if (startIndex != -1 && endIndex != -1 && endIndex >= startIndex) {
+        cleanJson = cleanJson.substring(startIndex, endIndex + 1);
+      }
       final Map<String, dynamic> data = jsonDecode(cleanJson);
 
       final employeeIdentifier = data['employee_identifier'] as String?;
-      final medicinesList = (data['medicines'] as List?)?.cast<String>();
+      final medicinesRaw = data['medicines'] as List?;
+      final List<Map<String, dynamic>> medicinesList = [];
+
+      if (medicinesRaw != null) {
+        for (var item in medicinesRaw) {
+          if (item is Map) {
+            medicinesList.add({
+              'name': item['name']?.toString() ?? '',
+              'quantity': (item['quantity'] as num?)?.toInt() ?? 1,
+            });
+          } else if (item is String) {
+            medicinesList.add({'name': item, 'quantity': 1});
+          }
+        }
+      }
 
       if (employeeIdentifier != null && employeeIdentifier.isNotEmpty) {
         _searchAndSetEmployee(employeeIdentifier);
       }
 
-      if (medicinesList != null && medicinesList.isNotEmpty) {
+      if (medicinesList.isNotEmpty) {
         _searchAndAddMedicines(medicinesList);
       }
     } catch (e) {
@@ -294,15 +321,31 @@ class _AddTherapyPageState extends State<AddTherapyPage> {
         .map((e) => e.data() as EmployeeModel)
         .toList();
 
-    final search = identifier.toLowerCase();
+    final search = _normalizeText(identifier);
     EmployeeModel? bestMatch;
 
     for (var emp in allEmployees) {
-      final name = (emp.name ?? '').toLowerCase();
-      final nip = (emp.nip ?? '').toLowerCase();
+      final name = _normalizeText(emp.name ?? '');
+      final nip = _normalizeText(emp.nip ?? '');
       if (name.contains(search) || nip.contains(search)) {
         bestMatch = emp;
         break;
+      }
+    }
+
+    if (bestMatch == null) {
+      final searchTokens = search
+          .split(' ')
+          .where((t) => t.length > 1)
+          .toList();
+      if (searchTokens.isNotEmpty) {
+        for (var emp in allEmployees) {
+          final name = _normalizeText(emp.name ?? '');
+          if (searchTokens.every((t) => name.contains(t))) {
+            bestMatch = emp;
+            break;
+          }
+        }
       }
     }
 
@@ -322,34 +365,79 @@ class _AddTherapyPageState extends State<AddTherapyPage> {
     }
   }
 
-  Future<void> _searchAndAddMedicines(List<String> medicineNames) async {
+  MedicineModel? _findMatchingMedicine(
+    String searchName,
+    List<MedicineModel> allMedicines,
+  ) {
+    final cleanSearch = _normalizeText(searchName);
+    if (cleanSearch.isEmpty) return null;
+
+    // 1. Exact or substring match on normalized string
+    for (var med in allMedicines) {
+      final cleanMedName = _normalizeText(med.name ?? '');
+      if (cleanMedName == cleanSearch || cleanMedName.contains(cleanSearch)) {
+        return med;
+      }
+    }
+
+    // 2. Token / word matching (all words of search present in database medicine name)
+    final searchTokens = cleanSearch
+        .split(' ')
+        .where((t) => t.length > 1)
+        .toList();
+    if (searchTokens.isNotEmpty) {
+      for (var med in allMedicines) {
+        final cleanMedName = _normalizeText(med.name ?? '');
+        if (searchTokens.every((t) => cleanMedName.contains(t))) {
+          return med;
+        }
+      }
+    }
+
+    // 3. Reverse substring match (if database medicine name is inside the search query)
+    for (var med in allMedicines) {
+      final cleanMedName = _normalizeText(med.name ?? '');
+      if (cleanMedName.length > 3 && cleanSearch.contains(cleanMedName)) {
+        return med;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _searchAndAddMedicines(
+    List<Map<String, dynamic>> medicineRequests,
+  ) async {
     final db = DatabaseService();
     final snapshot = await db.getMedicines().first;
     final allMedicines = snapshot.docs
         .map((e) => e.data() as MedicineModel)
         .toList();
 
-    List<MedicineModel> foundMedicines = [];
+    List<MapEntry<MedicineModel, int>> foundMedicinesWithQty = [];
 
-    for (var medName in medicineNames) {
-      final search = medName.toLowerCase();
-      for (var med in allMedicines) {
-        if ((med.name ?? '').toLowerCase().contains(search)) {
-          foundMedicines.add(med);
-          break; // Stop after first match for this name
-        }
+    for (var req in medicineRequests) {
+      final name = req['name'] as String;
+      final requestedQty = (req['quantity'] as int?) ?? 1;
+      final match = _findMatchingMedicine(name, allMedicines);
+      if (match != null) {
+        foundMedicinesWithQty.add(
+          MapEntry(match, requestedQty > 0 ? requestedQty : 1),
+        );
       }
     }
 
-    if (foundMedicines.isNotEmpty) {
+    if (foundMedicinesWithQty.isNotEmpty) {
       setState(() {
         final existing = {
           for (final item in selectedMedicines) _medicineKey(item): item,
         };
 
-        for (var med in foundMedicines) {
+        for (var entry in foundMedicinesWithQty) {
+          final med = entry.key;
+          final addQty = entry.value;
           final previous = existing[_medicineKey(med)];
-          final qty = (previous?.total ?? 0) + 1;
+          final qty = (previous?.total ?? 0) + addQty;
           existing[_medicineKey(med)] = med.copyWith(
             total: qty,
             subTotal: (med.price ?? 0) * qty,
@@ -360,7 +448,7 @@ class _AddTherapyPageState extends State<AddTherapyPage> {
       });
       SnackBarUtil.showSuccess(
         context,
-        'Berhasil menambahkan ${foundMedicines.length} obat dari OCR',
+        'Berhasil menambahkan ${foundMedicinesWithQty.length} obat dari OCR',
       );
     } else {
       SnackBarUtil.showSnack(

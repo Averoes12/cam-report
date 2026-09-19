@@ -3,9 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_ai/firebase_ai.dart';
-import 'dart:typed_data';
+import 'package:camreport/services/nine_router_service.dart';
 
 class OCRResult {
   final String text;
@@ -57,18 +55,13 @@ class _OCRBottomSheetState extends State<OCRBottomSheet> {
   Future<void> _processImageWeb(Uint8List imageBytes) async {
     setState(() => _isLoading = true);
     try {
-      final model = FirebaseAI.googleAI().generativeModel(
-        model: 'gemini-3.1-flash-lite',
+      final text = await NineRouterService.instance.extractTextFromImage(
+        imageBytes: imageBytes,
+        prompt: widget.promptContext,
       );
-      final prompt = TextPart(widget.promptContext);
-      final imagePart = InlineDataPart('image/jpeg', imageBytes);
-
-      final response = await model.generateContent([
-        Content.multi([prompt, imagePart]),
-      ]);
 
       if (mounted) {
-        Navigator.pop(context, OCRResult(response.text ?? ''));
+        Navigator.pop(context, OCRResult(text));
       }
     } catch (e) {
       final errorStr = e.toString().toLowerCase();
@@ -90,20 +83,14 @@ class _OCRBottomSheetState extends State<OCRBottomSheet> {
   Future<void> _processImage(File imageFile) async {
     setState(() => _isLoading = true);
     try {
-      final model = FirebaseAI.googleAI().generativeModel(
-        model: 'gemini-3.1-flash-lite',
+      final imageBytes = await imageFile.readAsBytes();
+      final text = await NineRouterService.instance.extractTextFromImage(
+        imageBytes: imageBytes,
+        prompt: widget.promptContext,
       );
 
-      final imageBytes = await imageFile.readAsBytes();
-      final prompt = TextPart(widget.promptContext);
-      final imagePart = InlineDataPart('image/jpeg', imageBytes);
-
-      final response = await model.generateContent([
-        Content.multi([prompt, imagePart]),
-      ]);
-
       if (mounted) {
-        Navigator.pop(context, OCRResult(response.text ?? ''));
+        Navigator.pop(context, OCRResult(text));
       }
     } catch (e) {
       final errorStr = e.toString().toLowerCase();
