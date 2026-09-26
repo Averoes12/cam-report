@@ -35,7 +35,15 @@ class InvoiceProvider extends ChangeNotifier {
 
   void _generatePeriod() {
     _startPeriod = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 26);
-    _endPeriod = DateTime(_selectedMonth.year, _selectedMonth.month, 25);
+    _endPeriod = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month,
+      25,
+      23,
+      59,
+      59,
+      999,
+    );
   }
 
   void _listenInvoices() {    

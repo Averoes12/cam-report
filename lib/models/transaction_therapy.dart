@@ -15,6 +15,9 @@ class TransactionTherapy implements ListDisplayable {
   final int grandTotal;
   final int perclient;
 
+  @override
+  String? get category => 'therapy';
+
   TransactionTherapy({
     this.id,
     required this.start,

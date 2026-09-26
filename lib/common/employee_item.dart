@@ -19,6 +19,14 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
     final theme = Theme.of(context);
     final isMobile = MediaQuery.of(context).size.width < 720;
 
+    final isTherapy = v.category == 'therapy';
+    final leadingIcon =
+        isTherapy ? Icons.healing_rounded : Icons.description_outlined;
+    final leadingIconColor =
+        isTherapy ? const Color(0xFF059669) : GlobalColors.textSecondary;
+    final leadingBgColor =
+        isTherapy ? const Color(0xFFECFDF5) : Colors.white;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
@@ -36,13 +44,13 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
                     Container(
                       width: 38,
                       height: 38,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: leadingBgColor,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.description_outlined,
-                        color: GlobalColors.textSecondary,
+                      child: Icon(
+                        leadingIcon,
+                        color: leadingIconColor,
                         size: 18,
                       ),
                     ),
@@ -51,7 +59,15 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(v.name, style: theme.textTheme.titleMedium),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              Text(v.name, style: theme.textTheme.titleMedium),
+                              _TypeBadge(category: v.category),
+                            ],
+                          ),
                           const SizedBox(height: 2),
                           Text(
                             v.nip,
@@ -124,13 +140,13 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
                 Container(
                   width: 38,
                   height: 38,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: leadingBgColor,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.description_outlined,
-                    color: GlobalColors.textSecondary,
+                  child: Icon(
+                    leadingIcon,
+                    color: leadingIconColor,
                     size: 18,
                   ),
                 ),
@@ -149,7 +165,15 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(v.name, style: theme.textTheme.titleMedium),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          Text(v.name, style: theme.textTheme.titleMedium),
+                          _TypeBadge(category: v.category),
+                        ],
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         '${v.deptnm}${v.status != null && v.status!.trim().isNotEmpty ? ' • ${v.status}' : ''}',
@@ -219,6 +243,55 @@ class ListItem<T extends ListDisplayable> extends StatelessWidget {
   }
 }
 
+class _TypeBadge extends StatelessWidget {
+  final String? category;
+
+  const _TypeBadge({this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final isTherapy = category == 'therapy';
+    final label = isTherapy ? 'Berobat' : 'Kunjungan';
+    final bgColor = isTherapy
+        ? const Color(0xFFECFDF5)
+        : const Color(0xFFEFF6FF);
+    final textColor = isTherapy
+        ? const Color(0xFF059669)
+        : const Color(0xFF2563EB);
+    final borderColor = isTherapy
+        ? const Color(0xFFA7F3D0)
+        : const Color(0xFFBFDBFE);
+    final icon = isTherapy
+        ? Icons.healing_rounded
+        : Icons.local_hospital_rounded;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: borderColor, width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              height: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
@@ -262,4 +335,5 @@ abstract class ListDisplayable {
   String get start;
   String get end;
   int get grandTotal;
+  String? get category;
 }

@@ -9,6 +9,7 @@ class TransactionVisit implements ListDisplayable {
   @override
   final String end;
   final String diagnose, note, spenTm, remark;
+  @override
   final String category;
   final EmployeeModel employee;
   final List<MedicineModel> medicines;

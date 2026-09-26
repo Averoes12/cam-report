@@ -481,11 +481,20 @@ class Utils {
       // =====================================================
       // FILTER PERIODE
       // =====================================================
+      final end = DateTime(
+        endPeriod.year,
+        endPeriod.month,
+        endPeriod.day,
+        23,
+        59,
+        59,
+        999,
+      );
       final filtered = allData.where((visit) {
         final date = Utils.tryParseDate(visit.end);
         if (date == null) return false;
 
-        return !date.isBefore(startPeriod) && !date.isAfter(endPeriod);
+        return !date.isBefore(startPeriod) && !date.isAfter(end);
       }).toList();
 
       // =====================================================
